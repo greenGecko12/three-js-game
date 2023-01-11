@@ -1,3 +1,18 @@
 Think of a good idea to implement - FPS, racing, (some time element maybe)
 Learn Three.js (or at least what's required to make the game)
 Regularly Git Commit to save progress
+
+
+Generate a plane and get character to move on that plane
+
+Add platforms/tiles ( 20x5x20 ) --> 
+
+on contact - different tiles perform different functions.
+
+
+
+class Tile():
+consctun
+
+
+class Bomb extends Tile();
