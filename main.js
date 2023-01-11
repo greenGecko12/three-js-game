@@ -1,10 +1,11 @@
 import * as THREE from './node_modules/three/build/three.module.js';
-import { PointerLockControls } from './node_modules/three/examples/jsm/controls/PointerLockControls.js';
+import { PointerLockControls } from './node_modules/three/examples/jsm/controls/PointerLockControls.js'; // might not need this in the end
+import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader.js';
 
 let camera, scene, renderer, controls;
 
 // const objects = [];
-
+//
 let raycaster;
 
 let moveForward = false;
@@ -20,7 +21,22 @@ const direction = new THREE.Vector3();
 // const color = new THREE.Color();
 
 init();
-animate(); // animation loop
+animate(); 
+
+function loadModel() {
+    const loader = new GLTFLoader();
+
+    loader.load( '../BlenderModels/Person.glb', function ( gltf ) {
+    
+        scene.add( gltf.scene );
+    
+    }, function ( error ) {
+    
+        console.error( error );
+    
+    } );
+}
+
 
 function init() {
 
@@ -30,6 +46,8 @@ function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xffffff);
     scene.fog = new THREE.Fog(0xffffff, 0, 750);
+
+    //loadModel();
 
     const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
     light.position.set(0.5, 1, 0.75);
