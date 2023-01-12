@@ -4,9 +4,14 @@ import { GLTFLoader } from './node_modules/three/examples/jsm/loaders/GLTFLoader
 
 let camera, scene, renderer, controls;
 
-// const objects = [];
-//
+const tiles = [];
+
 let raycaster;
+
+const diffTiles = 10
+let tileSize = 5;
+const planeWidth = 50;
+const planeLength = 250;
 
 let moveForward = false;
 let moveBackward = false;
@@ -23,18 +28,84 @@ const direction = new THREE.Vector3();
 init();
 animate(); 
 
-function loadModel() {
+function loadModel(path) {
     const loader = new GLTFLoader();
 
-    loader.load( '../BlenderModels/Person.glb', function ( gltf ) {
-    
+    loader.load( path, function ( gltf ) {
+        // const model = gltf 
+        // gltf.position.y = 10
+        gltf.scene.position.set( 0, 10, 10 );
         scene.add( gltf.scene );
     
-    }, function ( error ) {
+    }, undefined, function ( error ) {
     
         console.error( error );
     
     } );
+}
+
+// this function is not actually used
+function loadTexture() {
+    // instantiate a loader
+    const loader = new THREE.TextureLoader();
+
+    // load a resource
+    loader.load(
+        // resource URL
+        'textures/galaxy_texture.jpg',
+
+        // onLoad callback
+        function ( texture ) {
+            // in this example we create the material when the texture is loaded
+            const material = new THREE.MeshBasicMaterial( {
+                map: texture
+            } );
+
+        scene.background = material;
+        },
+
+        // onProgress callback currently not supported
+        undefined,
+
+        // onError callback
+        function ( err ) {
+            console.error( 'An error happened.' );
+        }
+    );
+}
+
+
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    // The maximum is exclusive and the minimum is inclusive
+    return Math.floor(Math.random() * (max - min) + min); 
+}
+
+
+function generateTiles(){
+    
+    const minTileSize = planeWidth / 6;
+    const maxTileSize = planeWidth / 10;
+
+    const minNumberOfTiles = parseInt(planeLength/planeWidth);
+    const maxNumberOfTiles = parseInt(planeLength/planeWidth) + diffTiles;
+
+    const numberOfTiles = parseInt(getRandomInt(minNumberOfTiles, maxNumberOfTiles) * Math.random() * 2.5);
+
+    // box material 
+    const boxMaterial = new THREE.MeshLambertMaterial({color: 0xd0312d})
+    // box geometry
+    let BoxGeometry;
+    let box;
+
+    // loop to create all the tiles and then add them to the scene
+    for (let i = 0; i < numberOfTiles; i++){
+        BoxGeometry = new THREE.BoxGeometry(getRandomInt(minTileSize, maxTileSize),0,getRandomInt(minTileSize,maxTileSize));
+        box = new THREE.Mesh(BoxGeometry, boxMaterial);
+        box.position.set(getRandomInt(-planeWidth/2+tileSize*2, planeWidth/2-tileSize*2),0.01, getRandomInt(-planeLength/2+tileSize*2, planeLength/2-tileSize*2));
+        scene.add(box);
+    }
 }
 
 
@@ -44,14 +115,29 @@ function init() {
     camera.position.y = 10;
 
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff);
+    //scene.background = new THREE.Color(0xde45e3);
     scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
-    //loadModel();
+    loadModel("./Person.glb");
+    generateTiles();
 
     const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
     light.position.set(0.5, 1, 0.75);
     scene.add(light);
+
+    //loadTexture()
+
+    const loader = new THREE.CubeTextureLoader();
+    const texture = loader.load([
+        "./textures/galaxy.jpg",    
+        "./textures/galaxy.jpg",
+        "./textures/galaxy.jpg",
+        "./textures/galaxy.jpg",
+        "./textures/galaxy.jpg",
+        "./textures/galaxy.jpg",
+    ])
+    scene.background = texture;
+
 
     // locks in the mouse basically so you can't see
     controls = new PointerLockControls(camera, document.body);
@@ -152,8 +238,38 @@ function init() {
 
     // floor - The first 2 arguments (width, height)
     // The last 2 arguments correspond to the number of width and height segments --> affect the design on the floor
-    let floorGeometry = new THREE.PlaneGeometry(200, 200);
+    let floorGeometry = new THREE.PlaneGeometry(planeWidth, planeLength);
+
+
+    let leftWall = new THREE.BoxGeometry(5,70,5);
+    let rightWall = new THREE.BoxGeometry(5,70,5);
+    leftWall.rotateZ(Math.PI / 2);
+    leftWall.rotateY(Math.PI / 2);
+
+    rightWall.rotateZ(Math.PI / 2);
+    rightWall.rotateY(-Math.PI / 2);
+    // leftWall.rotateX(Math.PI / 2);
+
+    const wallTextureLoader = new THREE.TextureLoader();
+    const wallMaterial = wallTextureLoader.load("./textures/fence_texture.jpg");
+    wallMaterial.wrapS = THREE.RepeatWrapping;
+    wallMaterial.wrapT = THREE.RepeatWrapping;
+    wallMaterial.repeat.set( 1, 4 );
+
+    const wallTextureMaterial = new THREE.MeshLambertMaterial({map: wallMaterial, side: THREE.DoubleSide})
+
+    const leftWallMesh = new THREE.Mesh(leftWall, wallTextureMaterial);
+    const rightWallMesh = new THREE.Mesh(rightWall, wallTextureMaterial);
+
+
+    leftWallMesh.position.set(15,2,0);
+    rightWallMesh.position.set(-13,2,0);
     
+    scene.add(leftWallMesh);
+    scene.add(rightWallMesh);
+
+
+
     // makes the plane a proper plane (otherwise it defaults to a vertical plane)
     floorGeometry.rotateX(- Math.PI / 2);
 
