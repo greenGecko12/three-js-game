@@ -11,8 +11,21 @@ on contact - different tiles perform different functions.
 
 
 
-class Tile():
-consctun
+need to add gun and alien models
+make a 3rd person camera with peek back mode
+collision detection with the walls and the red floor tiles
+make a new level (with a different sort of game)
+fix Blender model so that it is not a half-person -- DONE
+align the walls so they are exactly to the left and right of the plane
+implement the ability to shoot the aliens
 
 
-class Bomb extends Tile();
+3rd person view
+
+add in the aliens - they're just boxes for now
+
+lives system - start off with 3 hearts
+
+need to make a menu with level 1, level 2, and instructions
+
+
