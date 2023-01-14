@@ -1,11 +1,17 @@
 import * as THREE from "./node_modules/three/build/three.module.js";
 import { PointerLockControls } from "./node_modules/three/examples/jsm/controls/PointerLockControls.js"; // might not need this in the end
 import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader.js";
+import ThirdPersonCamera from "./camera.js";
 
-let camera, scene, renderer, controls;
+let camera, scene, renderer, controls, thirdPersonCamera;
 
 const tiles = []; // TODO: all the tile objects to this array later
 const alienObjects = [];
+
+// there are 2 scenes, scene 1 and scene
+let mainScene;
+const scenes = [];
+const jump = 1; // TODO: this variable controls how far the character jumps (remove when 3rd person camera implemented)
 
 let flag = true;
 let personObject;
@@ -18,6 +24,7 @@ const diffTiles = 10;
 let tileSize = 5;
 const planeWidth = 50;
 const planeLength = 250;
+const startAreasize = 20;
 
 let moveForward = false;
 let moveBackward = false;
@@ -30,7 +37,10 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 let playerPosition = new THREE.Vector3();
 
-// const color = new THREE.Color();
+const fov = 75;
+const aspect = window.innerWidth / window.innerHeight;
+const near = 1.0;
+const far = 1000.0;
 
 init();
 animate();
@@ -45,7 +55,8 @@ function loadModel(path) {
       // console.log(gltf.scene)
 
       personObject = gltf.scene.children[0];
-      personObject.position.set(0, 5, 10);
+      personObject.position.set(0, 5, 115);
+      personObject.rotateY(Math.PI);
 
       scene.add(personObject);
     },
@@ -124,7 +135,7 @@ function generateTiles() {
   const minNumberOfTiles = parseInt(planeLength / planeWidth);
   const maxNumberOfTiles = parseInt(planeLength / planeWidth) + diffTiles;
 
-  const numberOfTiles = parseInt(getRandomInt(minNumberOfTiles, maxNumberOfTiles) * Math.random() * 2.5);
+  const numberOfTiles = parseInt(getRandomInt(minNumberOfTiles, maxNumberOfTiles) * Math.random() * 2.5) + getRandomInt(-4, 5);
 
   // box material
   const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xd0312d });
@@ -137,46 +148,64 @@ function generateTiles() {
     BoxGeometry = new THREE.BoxGeometry(getRandomInt(minTileSize, maxTileSize), 0, getRandomInt(minTileSize, maxTileSize));
     box = new THREE.Mesh(BoxGeometry, boxMaterial);
     box.position.set(
-      getRandomInt(-planeWidth / 2 + tileSize * 2, planeWidth / 2 - tileSize * 2),
+      getRandomInt(-planeWidth / 2 + startAreasize, planeWidth / 2 - startAreasize),
       0.01,
-      getRandomInt(-planeLength / 2 + tileSize * 2, planeLength / 2 - tileSize * 2)
+      getRandomInt(-planeLength / 2 + startAreasize, planeLength / 2 - startAreasize)
     );
     scene.add(box);
   }
 }
 
-function generateHearts() {
-  // const heartShape = new THREE.Shape();
+// creates 2 cubes that are positioned at the start and end of the track
+function createStartAndEndSections() {
+  // box material
+  const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xca5cdd });
 
-  // heartShape.moveTo( 25, 25 );
-  // heartShape.bezierCurveTo( 25, 25, 20, 0, 0, 0 );
-  // heartShape.bezierCurveTo( - 30, 0, - 30, 35, - 30, 35 );
-  // heartShape.bezierCurveTo( - 30, 55, - 10, 77, 25, 95 );
-  // heartShape.bezierCurveTo( 60, 77, 80, 55, 80, 35 );
-  // heartShape.bezierCurveTo( 80, 35, 80, 0, 50, 0 );
-  // heartShape.bezierCurveTo( 35, 0, 25, 25, 25, 25 );
+  // these start and end sections will stretch across the width of the plane but have a depth of 20
+  const startBoxGeometry = new THREE.BoxGeometry(planeWidth, 0, startAreasize);
+  const endBoxGeometry = new THREE.BoxGeometry(planeWidth, 0, startAreasize);
 
-  // const extrudeSettings = { depth: 8, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+  const startBoxMesh = new THREE.Mesh(startBoxGeometry, boxMaterial);
+  startBoxMesh.position.set(0, 0.001, -115);
 
-  // const geometry = new THREE.ExtrudeGeometry( heartShape, extrudeSettings );
+  const endBoxMesh = new THREE.Mesh(endBoxGeometry, boxMaterial);
+  endBoxMesh.position.set(0, 0.001, 115);
 
-  // const heart1 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({ color: 0xDC143C}) );
-  // const heart2 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({ color: 0xDC143C}) );
-  // const heart3 = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({ color: 0xDC143C}) );
-
-  // heartObjects.push(heart1);
-  // heartObjects.push(heart2);
-
-  // for (let i=0; i<lives; i++){
-  //     const heart = generateHeart();
-  //     heart.position.set();
-  //     scene.add(heart)
-  // }
-
-  const x = 8;
+  scene.add(startBoxMesh);
+  scene.add(endBoxMesh);
 }
 
-// just subtracts a file
+function generateAllHearts() {
+  for (let i = 0; i < lives; i++) {
+    const heart = generateHeart();
+    heart.position.set(0, 10, 0 + i * 10);
+    heartObjects.push(heart);
+    scene.add(heart);
+  }
+}
+
+function generateHeart() {
+  const heartShape = new THREE.Shape();
+
+  heartShape.moveTo(25, 25);
+  heartShape.bezierCurveTo(25, 25, 20, 0, 0, 0);
+  heartShape.bezierCurveTo(-30, 0, -30, 35, -30, 35);
+  heartShape.bezierCurveTo(-30, 55, -10, 77, 25, 95);
+  heartShape.bezierCurveTo(60, 77, 80, 55, 80, 35);
+  heartShape.bezierCurveTo(80, 35, 80, 0, 50, 0);
+  heartShape.bezierCurveTo(35, 0, 25, 25, 25, 25);
+
+  const extrudeSettings = { depth: 8, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+  const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+  const heart = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xe8bcf0 }));
+  heart.rotateZ(Math.PI);
+  heart.scale.set(0.1, 0.1, 0.1);
+  return heart;
+}
+
+// just subtracts a life and TODO: also remove a heart from the screen
+// THIS REMOVAL MIGHT TRIGGER A RE-RENDER OF THE HEARTS ON THE SCREEN
+// Could maybe include some sort of sound effect to alert the user of this
 function loseLife() {
   lives -= 1;
   if (lives == 0) {
@@ -242,21 +271,26 @@ function updateAlienPositions() {
 }
 
 function init() {
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
+  camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.y = 10;
-  camera.position.z = 30;
+  camera.position.z = 130;
+
+  // thirdPersonCamera = new ThirdPersonCamera({
+  //   camera: camera,
+  // });
 
   scene = new THREE.Scene();
   //scene.background = new THREE.Color(0xde45e3);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
   loadModel("./Person2.glb");
-
+  createStartAndEndSections();
   // console.log("+++++");
   // console.log(personObject);
   // console.log("+++++");
 
   generateTiles();
+  generateAllHearts();
 
   //spawnAliens();
 
@@ -307,7 +341,6 @@ function init() {
       case "ArrowUp":
       case "KeyW":
         moveForward = true;
-        // personObject.position.z += 5;
         break;
 
       case "ArrowLeft":
@@ -328,6 +361,23 @@ function init() {
       case "Space":
         if (canJump === true) velocity.y += 200;
         canJump = false;
+        break;
+
+      // the code below is temporary until the 3rd person camera is fully implementec
+      case "KeyT":
+        personObject.position.z -= jump;
+        break;
+
+      case "KeyF":
+        personObject.position.x -= jump;
+        break;
+
+      case "KeyG":
+        personObject.position.z += jump;
+        break;
+
+      case "KeyH":
+        personObject.position.x += jump;
         break;
     }
   };
@@ -444,6 +494,10 @@ function init() {
   window.addEventListener("resize", onWindowResize);
 }
 
+// this renders the second scene
+// right now the idea is just to make a jumping game?
+function init2() {}
+
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -477,6 +531,8 @@ function animate() {
     // const onObject = intersections.length > 0;
 
     const delta = (time - prevTime) / 1000;
+
+    // thirdPersonCamera.Update(delta);
 
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;

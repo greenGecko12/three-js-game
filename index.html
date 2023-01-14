@@ -27,26 +27,50 @@
             font-size: 14px;
             cursor: pointer;
         }
+
+        .largefont {
+            font-size: 1.4rem;
+            margin-left: 10rem;
+            margin-right: 10rem;
+        }
     </style>
 </head>
 
 <body>
+    <!-- <p>
+        Lives:
+    </p> -->
     <div id="blocker">
         <div id="instructions">
-            <p style="font-size:36px">
-                Steps game
+            <p style="font-size:36px; color: crimson;">
+                Alien shooter game
             </p>
-            <p>
-                Move: WASD<br />
-                Jump: SPACE<br />
-                Look: MOUSE
-            </p>
+            <div class="largefont">
+                <p>
+                    You start at one end of a plane and have to reach the other end in as quick as time as possible.
+                </p>
+                <p>
+                    Don't the touch the red tiles or you lose a life. You start with 3 lives and you lose if you lose
+                    all three lives. The number of lives is represented by the number of hearts above the character.
+                </p>
+                <p>
+                    Don't let the aliens touch you either or you will lose another life. You can shoot them to get rid
+                    of them.
+                </p>
+                <p>
+                    After completing the first level, you will automatically be navigated to the second level. If you
+                    ever need to read these instructions again then press the "Esc" key on your keyboard.
+                </p>
+                <p>
+                    Move: WASD<br />
+                    Jump: SPACE<br />
+                    Look: MOUSE <br />
+                    Shoot: Left mouse click
+                </p>
+            </div>
+            <h1 style="color: blueviolet"> Click to start!! Good luck. </h1>
         </div>
     </div>
-
-    <!-- <div id="ingame">
-        <p>You have 3 lives left.</p>
-    </div> -->
 
     <!-- Import maps polyfill -->
     <!-- Remove this when import maps will be widely supported -->
