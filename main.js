@@ -7,6 +7,11 @@ let camera, scene, renderer, controls, thirdPersonCamera;
 
 const tiles = []; // TODO: all the tile objects to this array later
 const alienObjects = [];
+const hearts = [];
+
+const heartSymbol = "&#10084; "; // html code for a heart
+
+let personBoundingBox;
 
 // there are 2 scenes, scene 1 and scene
 let mainScene;
@@ -18,7 +23,9 @@ let personObject;
 let raycaster;
 let lives = 3;
 let heartObjects = [];
+
 let gameOver = false;
+let gameStart = false; // TODO: use this variable later on in the process.
 
 const diffTiles = 10;
 let tileSize = 5;
@@ -57,7 +64,12 @@ function loadModel(path) {
       personObject = gltf.scene.children[0];
       personObject.position.set(0, 5, 115);
       personObject.rotateY(Math.PI);
+      personObject.castShadow = true;
+      personObject.receiveShadow = true;
 
+      // we need to make a bounding box for the human avatar
+      personBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+      personBoundingBox.setFromObject(personObject);
       scene.add(personObject);
     },
     undefined,
@@ -65,6 +77,12 @@ function loadModel(path) {
       console.error(error);
     }
   );
+}
+
+function renderNumberOfHearts() {
+  const livesLeft = document.getElementById("numberOfLives");
+  let string = "Lives: ".concat(heartSymbol.repeat(lives));
+  livesLeft.innerHTML = string;
 }
 
 function loadAlienModel(path) {
@@ -166,10 +184,10 @@ function createStartAndEndSections() {
   const endBoxGeometry = new THREE.BoxGeometry(planeWidth, 0, startAreasize);
 
   const startBoxMesh = new THREE.Mesh(startBoxGeometry, boxMaterial);
-  startBoxMesh.position.set(0, 0.001, -115);
+  startBoxMesh.position.set(0, 0.1, -115);
 
   const endBoxMesh = new THREE.Mesh(endBoxGeometry, boxMaterial);
-  endBoxMesh.position.set(0, 0.001, 115);
+  endBoxMesh.position.set(0, 0.1, 115);
 
   scene.add(startBoxMesh);
   scene.add(endBoxMesh);
@@ -182,6 +200,23 @@ function generateAllHearts() {
     heartObjects.push(heart);
     scene.add(heart);
   }
+
+  // for (let heart of hearts){
+  //   //create a bounding box for the hearts
+  //   let heartBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+  //   heartBB.setFromObject(heart);
+  // }
+}
+
+function createTestBox() {
+  const cube2 = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshPhongMaterial({ color: 0x0000ff }));
+
+  cube2.position.set(-3, 3, 20);
+  cube2.castShadow = true;
+  cube2.receiveShadow = true;
+
+  let cube2BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+  cube2BB.setFromObject(cube2);
 }
 
 function generateHeart() {
@@ -200,6 +235,7 @@ function generateHeart() {
   const heart = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial({ color: 0xe8bcf0 }));
   heart.rotateZ(Math.PI);
   heart.scale.set(0.1, 0.1, 0.1);
+
   return heart;
 }
 
@@ -208,8 +244,14 @@ function generateHeart() {
 // Could maybe include some sort of sound effect to alert the user of this
 function loseLife() {
   lives -= 1;
+  console.log(lives);
   if (lives == 0) {
     gameOver = true;
+  }
+
+  //Updates the number of hearts being displayed
+  if (lives > -1) {
+    renderNumberOfHearts();
   }
 }
 
@@ -271,6 +313,8 @@ function updateAlienPositions() {
 }
 
 function init() {
+  renderNumberOfHearts();
+
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.y = 10;
   camera.position.z = 130;
@@ -292,14 +336,20 @@ function init() {
   generateTiles();
   generateAllHearts();
 
+  createTestBox();
+
   //spawnAliens();
 
   // updateAlienPositions(personObject);
 
-  const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
+  const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
   light.position.set(0.5, 1, 0.75);
   scene.add(light);
 
+  const dirLight = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
+  dirLight.position.set(-4, 9, -1);
+  scene.add(dirLight);
+  dirLight.castShadow = true;
   //loadTexture()
 
   const loader = new THREE.CubeTextureLoader();
@@ -366,6 +416,7 @@ function init() {
       // the code below is temporary until the 3rd person camera is fully implementec
       case "KeyT":
         personObject.position.z -= jump;
+        loseLife();
         break;
 
       case "KeyF":
@@ -482,6 +533,7 @@ function init() {
   const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x23da23 });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.receiveShadow = true;
   scene.add(floor);
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -489,6 +541,8 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
   window.addEventListener("resize", onWindowResize);
@@ -519,6 +573,13 @@ function animate() {
   //   if (personObject != undefined) {
   //     updateAlienPositions();
   //   }
+
+  //personObject != undefined &&
+
+  //updating the person's bounding box
+  // if (personBoundingBox !== undefined) {
+  //   personBoundingBox.copy(personObject.geometry.boundingBox).applyMatrix4(personObject.matrixWorld);
+  // }
 
   const time = performance.now();
 
