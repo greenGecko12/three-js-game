@@ -1,16 +1,24 @@
+// import * as THREE from "./three";
+// import { PointerLockControls } from "./three/examples/jsm/controls/PointerLockControls.js"; // might not need this in the end
+// import { OrbitControls } from "./three/examples/jsm/controls/OrbitControls.js";
+// import { GLTFLoader } from "/three/examples/jsm/loaders/GLTFLoader.js";
+// import { KeyDisplay } from "./helpers/util.js";
+// import { CharacterControls } from "./characterControls.js";
+
 import * as THREE from "./node_modules/three/build/three.module.js";
 import { PointerLockControls } from "./node_modules/three/examples/jsm/controls/PointerLockControls.js"; // might not need this in the end
+import { OrbitControls } from "./node_modules/three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader.js";
-import ThirdPersonCamera from "./camera.js";
+import { KeyDisplay } from "./helpers/util.js";
+import { CharacterControls } from "./characterControls.js";
 
-let camera, scene, renderer, controls, thirdPersonCamera;
+let camera, scene, renderer, controls;
 
 const tiles = []; // TODO: all the tile objects to this array later
 const alienObjects = [];
 const hearts = [];
 
 const heartSymbol = "&#10084; "; // html code for a heart
-
 let personBoundingBox;
 
 // there are 2 scenes, scene 1 and scene
@@ -49,8 +57,38 @@ const aspect = window.innerWidth / window.innerHeight;
 const near = 1.0;
 const far = 1000.0;
 
+let characterControls;
+const clock = new THREE.Clock();
+let orbitControls;
+let keyDisplayQueue;
+let keysPressed;
+
 init();
 animate();
+
+function loadSoldier() {
+  // MODEL WITH ANIMATIONS
+  new GLTFLoader().load("models/Soldier.glb", function (gltf) {
+    const model = gltf.scene;
+    model.traverse(function (object) {
+      if (object.isMesh) object.castShadow = true;
+    });
+    model.scale.set(4, 4, 4);
+    //model.position.set(0, 5, -200);
+    scene.add(model);
+
+    const gltfAnimations = gltf.animations;
+    const mixer = new THREE.AnimationMixer(model);
+    const animationsMap = new Map();
+    gltfAnimations
+      .filter((a) => a.name != "TPose")
+      .forEach((a) => {
+        animationsMap.set(a.name, mixer.clipAction(a));
+      });
+
+    characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, camera, "Idle");
+  });
+}
 
 function loadModel(path) {
   const loader = new GLTFLoader();
@@ -193,6 +231,7 @@ function createStartAndEndSections() {
   scene.add(endBoxMesh);
 }
 
+// this method is obsolete, get rid of it later on
 function generateAllHearts() {
   for (let i = 0; i < lives; i++) {
     const heart = generateHeart();
@@ -200,12 +239,6 @@ function generateAllHearts() {
     heartObjects.push(heart);
     scene.add(heart);
   }
-
-  // for (let heart of hearts){
-  //   //create a bounding box for the hearts
-  //   let heartBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-  //   heartBB.setFromObject(heart);
-  // }
 }
 
 function createTestBox() {
@@ -219,6 +252,7 @@ function createTestBox() {
   cube2BB.setFromObject(cube2);
 }
 
+// TODO: this method is obsolete, get rid of it later on
 function generateHeart() {
   const heartShape = new THREE.Shape();
 
@@ -315,26 +349,43 @@ function updateAlienPositions() {
 function init() {
   renderNumberOfHearts();
 
+  // RENDERER
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.y = 10;
   camera.position.z = 130;
-
-  // thirdPersonCamera = new ThirdPersonCamera({
-  //   camera: camera,
-  // });
+  // camera.lookAt(0, 100, -10);
 
   scene = new THREE.Scene();
   //scene.background = new THREE.Color(0xde45e3);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
-  loadModel("./Person2.glb");
+  // CONTROLS
+  orbitControls = new OrbitControls(camera, renderer.domElement);
+  orbitControls.enableDamping = true;
+  orbitControls.minDistance = 5;
+  orbitControls.maxDistance = 15;
+  orbitControls.enablePan = false;
+  orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
+  orbitControls.update();
+
+  // loadModel("./models/Person2.glb");
+
+  loadSoldier();
+
   createStartAndEndSections();
   // console.log("+++++");
   // console.log(personObject);
   // console.log("+++++");
 
   generateTiles();
-  generateAllHearts();
+  // generateAllHearts();
 
   createTestBox();
 
@@ -385,81 +436,29 @@ function init() {
 
   scene.add(controls.getObject());
 
-  // moving the player around
-  const onKeyDown = function (event) {
-    switch (event.code) {
-      case "ArrowUp":
-      case "KeyW":
-        moveForward = true;
-        break;
-
-      case "ArrowLeft":
-      case "KeyA":
-        moveLeft = true;
-        break;
-
-      case "ArrowDown":
-      case "KeyS":
-        moveBackward = true;
-        break;
-
-      case "ArrowRight":
-      case "KeyD":
-        moveRight = true;
-        break;
-
-      case "Space":
-        if (canJump === true) velocity.y += 200;
-        canJump = false;
-        break;
-
-      // the code below is temporary until the 3rd person camera is fully implementec
-      case "KeyT":
-        personObject.position.z -= jump;
-        loseLife();
-        break;
-
-      case "KeyF":
-        personObject.position.x -= jump;
-        break;
-
-      case "KeyG":
-        personObject.position.z += jump;
-        break;
-
-      case "KeyH":
-        personObject.position.x += jump;
-        break;
-    }
-  };
-
-  const onKeyUp = function (event) {
-    switch (event.code) {
-      case "ArrowUp":
-      case "KeyW":
-        moveForward = false;
-        break;
-
-      case "ArrowLeft":
-      case "KeyA":
-        moveLeft = false;
-        break;
-
-      case "ArrowDown":
-      case "KeyS":
-        moveBackward = false;
-        break;
-
-      case "ArrowRight":
-      case "KeyD":
-        moveRight = false;
-        break;
-    }
-  };
-
-  // Adding in the event listeners to call the movement
-  document.addEventListener("keydown", onKeyDown);
-  document.addEventListener("keyup", onKeyUp);
+  // CONTROL KEYS
+  keysPressed = {};
+  keyDisplayQueue = new KeyDisplay();
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      keyDisplayQueue.down(event.key);
+      if (event.shiftKey && characterControls) {
+        characterControls.switchRunToggle();
+      } else {
+        keysPressed[event.key.toLowerCase()] = true;
+      }
+    },
+    false
+  );
+  document.addEventListener(
+    "keyup",
+    (event) => {
+      keyDisplayQueue.up(event.key);
+      keysPressed[event.key.toLowerCase()] = false;
+    },
+    false
+  );
 
   // what is a THREE.Raycaster --> lighting and shading basically
   raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
@@ -497,39 +496,6 @@ function init() {
   // makes the plane a proper plane (otherwise it defaults to a vertical plane)
   floorGeometry.rotateX(-Math.PI / 2);
 
-  // vertex displacement
-  // let position = floorGeometry.attributes.position;
-  // console.log(position);
-  // console.log(typeof(position))
-
-  // this next chunk "designs" the floor I think
-  /////////////////////////////////////////////////////////////////////////////////////
-  // for (let i = 0, l = position.count; i < l; i++) {w
-
-  //     vertex.fromBufferAttribute(position, i);
-
-  //     vertex.x += Math.random() * 20 - 10;
-  //     vertex.y += Math.random() * 2;
-  //     vertex.z += Math.random() * 20 - 10;
-
-  //     position.setXYZ(i, vertex.x, vertex.y, vertex.z);
-
-  // }
-
-  // floorGeometry = floorGeometry.toNonIndexed(); // ensure each face has unique vertices
-
-  // position = floorGeometry.attributes.position;
-  // const colorsFloor = [];
-
-  // for (let i = 0, l = position.count; i < l; i++) {
-
-  //     color.setHSL(Math.random() * 0.3 + 0.5, 0.75, Math.random() * 0.25 + 0.75);
-  //     colorsFloor.push(color.r, color.g, color.b);
-
-  // }
-
-  // floorGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colorsFloor, 3));
-
   const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x23da23 });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -538,30 +504,30 @@ function init() {
 
   //////////////////////////////////////////////////////////////////////////////////////
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
-  renderer.shadowMap.enabled = true;
-  document.body.appendChild(renderer.domElement);
-
   window.addEventListener("resize", onWindowResize);
 }
 
 // this renders the second scene
-// right now the idea is just to make a jumping game?
+// right now the idea is just to make the same shooting game but a bit harder
 function init2() {}
 
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-
   renderer.setSize(window.innerWidth, window.innerHeight);
+  keyDisplayQueue.updatePosition();
 }
 
 // animation function that gets called 60 times a second, I think
 function animate() {
   requestAnimationFrame(animate);
+
+  let mixerUpdateDelta = clock.getDelta();
+  if (characterControls) {
+    characterControls.update(mixerUpdateDelta, keysPressed);
+  }
+  orbitControls.update();
+  renderer.render(scene, camera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
 
   // if (personObject != undefined){
   //     if (flag){
@@ -592,8 +558,6 @@ function animate() {
     // const onObject = intersections.length > 0;
 
     const delta = (time - prevTime) / 1000;
-
-    // thirdPersonCamera.Update(delta);
 
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -627,7 +591,5 @@ function animate() {
     }
   }
 
-  prevTime = time;
-
-  renderer.render(scene, camera);
+  // prevTime = time;
 }
