@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <script type="module">
+        import * as THREE from '../node_modules/three/build/three.module.js';
+        import { OrbitControls } from "../node_modules/three/examples/jsm/controls/OrbitControls.js";
+
+        // SCENE
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x345434);
+
+        // CAMERA
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth, window.innerHeight,
+            0.1,
+            20000
+        );
+
+        camera.position.set(3, 5, 3);
+        camera.lookAt(0, 0, 0);
+
+        // RENDERER 
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        // renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // renderer.outputEncoding = THREE.sRGBEncoding;
+        // renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        const ambient = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
+        ambient.position.set(0.5, 1, 0.75);
+        scene.add(ambient);
+
+        const dirLight = new THREE.DirectionalLight(0xfffffff, 0.3, 50); // shadows
+        dirLight.position.set(1, 2, -1);
+        scene.add(dirLight);
+        dirLight.castShadow = true;
+
+        // CUBE 1
+        const cube1 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0xff0000 }));
+
+        cube1.position.set(3, 0, 0);
+        cube1.castShadow = true;
+        cube1.receiveShadow = true;
+
+        let cube1BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // minimum value and maximum value
+        cube1BB.setFromObject(cube1);
+
+        // CUBE 1
+        const cube2 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshPhongMaterial({ color: 0x0000ff }));
+
+        cube2.position.set(-3, 0, 0);
+        cube2.castShadow = true;
+        cube2.receiveShadow = true;
+
+        let cube2BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // minimum value and maximum value
+        cube2BB.setFromObject(cube2);
+
+        // GROUND
+        // const plane1 = new THREE.Mesh(
+        //     new THREE.PlaneGeometry(50, 50),
+        //     new THREE.MeshStandardMaterial({ color: "red" })
+        // );
+
+        // //plane1.position.set(0, -0.5, 0);
+        // plane1.rotateX(-Math.PI / 2);
+        // plane1.receiveShadow = true;
+
+        // scene.add(cube1, cube2, plane1);
+        scene.add(cube1, cube2);
+
+        // moving the player around
+        const onKeyDown = function (event) {
+            keyDisplayQueue.down(event.key);
+            switch (event.code) {
+                case "ArrowUp":
+                case "KeyW":
+                    cube2.position.z -= 1;
+                    break;
+
+                case "ArrowLeft":
+                case "KeyA":
+                    cube2.position.x -= 1;
+                    break;
+
+                case "ArrowDown":
+                case "KeyS":
+                    cube2.position.z += 1;
+                    break;
+
+                case "ArrowRight":
+                case "KeyD":
+                    cube2.position.x += 1;
+                    break;
+            }
+        };
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        animate();
+
+        function checkCollisions() {
+
+            if (cube2BB.intersectsBox(cube1BB)) {
+                console.log("collision")
+            } else {
+
+            }
+        }
+
+        function animate() {
+
+            // updating cube2BB since cube2 can move about in the world
+            cube2BB.copy(cube2.geometry.boundingBox).applyMatrix4(cube2.matrixWorld);
+
+            checkCollisions();
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+    </script>
+</body>
+
+</html>

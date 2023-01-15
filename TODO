@@ -2,14 +2,11 @@ Think of a good idea to implement - FPS, racing, (some time element maybe)
 Learn Three.js (or at least what's required to make the game)
 Regularly Git Commit to save progress
 
-
 Generate a plane and get character to move on that plane
 
-Add platforms/tiles ( 20x5x20 ) --> 
+Add platforms/tiles ( 20x5x20 ) -->
 
 on contact - different tiles perform different functions.
-
-
 
 need to add gun and alien models
 make a 3rd person camera with peek back mode
@@ -19,7 +16,6 @@ fix Blender model so that it is not a half-person -- DONE
 align the walls so they are exactly to the left and right of the plane
 implement the ability to shoot the aliens --> clicking on them will make them disappear for now
 
-
 3rd person view
 
 add in the aliens - they're just boxes for now
@@ -28,11 +24,12 @@ lives system - start off with 3 hearts
 
 need to make a menu with level 1, level 2, and instructions
 
-
-
 NEED TO PLACE AND ORIENT THE PERSON AVATAR CORRECTLY
 
 CHANGE THE NAME OF THE GAME TOO IN THE MENU
 
 ADD SOME SHADOWS TOO!
 
+NOT working:
+Orbit controls
+need to position the soldier properly.

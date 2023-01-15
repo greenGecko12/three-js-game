@@ -63,18 +63,32 @@ let orbitControls;
 let keyDisplayQueue;
 let keysPressed;
 
+// These variable are temporary - remove them when collision fully working.
+let cube2;
+let cube2BB;
+////////////////////////////////////////////////////////////////////////
+let soldierBB; // bounding box for the soldier
+let model;
+
+let leftWallBB;
+let rightWallBB;
+
 init();
 animate();
 
 function loadSoldier() {
   // MODEL WITH ANIMATIONS
   new GLTFLoader().load("models/Soldier.glb", function (gltf) {
-    const model = gltf.scene;
+    model = gltf.scene;
+    console.log(model); // THREE js Group
     model.traverse(function (object) {
       if (object.isMesh) object.castShadow = true;
     });
     model.scale.set(4, 4, 4);
     //model.position.set(0, 5, -200);
+
+    soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    soldierBB.setFromObject(model.children[0]);
     scene.add(model);
 
     const gltfAnimations = gltf.animations;
@@ -209,6 +223,7 @@ function generateTiles() {
       getRandomInt(-planeLength / 2 + startAreasize, planeLength / 2 - startAreasize)
     );
     scene.add(box);
+    tiles.push(box);
   }
 }
 
@@ -242,14 +257,16 @@ function generateAllHearts() {
 }
 
 function createTestBox() {
-  const cube2 = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshPhongMaterial({ color: 0x0000ff }));
+  cube2 = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshPhongMaterial({ color: 0x0000ff }));
 
   cube2.position.set(-3, 3, 20);
   cube2.castShadow = true;
   cube2.receiveShadow = true;
 
-  let cube2BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+  cube2BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
   cube2BB.setFromObject(cube2);
+
+  scene.add(cube2);
 }
 
 // TODO: this method is obsolete, get rid of it later on
@@ -358,9 +375,9 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.y = 10;
+  camera.position.y = 100;
   camera.position.z = 130;
-  // camera.lookAt(0, 100, -10);
+  //camera.lookAt(-100, 100, -10);
 
   scene = new THREE.Scene();
   //scene.background = new THREE.Color(0xde45e3);
@@ -371,7 +388,7 @@ function init() {
   orbitControls.enableDamping = true;
   orbitControls.minDistance = 5;
   orbitControls.maxDistance = 15;
-  orbitControls.enablePan = false;
+  orbitControls.enablePan = true;
   orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
   orbitControls.update();
 
@@ -387,20 +404,21 @@ function init() {
   generateTiles();
   // generateAllHearts();
 
-  createTestBox();
+  //createTestBox();
 
   //spawnAliens();
 
   // updateAlienPositions(personObject);
 
   const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
-  light.position.set(0.5, 1, 0.75);
+  light.position.set(50, 10, 75);
+  // light.castShadow = true;
   scene.add(light);
 
   const dirLight = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
-  dirLight.position.set(-4, 9, -1);
-  scene.add(dirLight);
+  dirLight.position.set(40, 90, 100);
   dirLight.castShadow = true;
+  scene.add(dirLight);
   //loadTexture()
 
   const loader = new THREE.CubeTextureLoader();
@@ -461,7 +479,7 @@ function init() {
   );
 
   // what is a THREE.Raycaster --> lighting and shading basically
-  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
+  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 45);
 
   // floor - The first 2 arguments (width, height)
   // The last 2 arguments correspond to the number of width and height segments --> affect the design on the floor
@@ -482,13 +500,19 @@ function init() {
   wallMaterial.wrapT = THREE.RepeatWrapping;
   wallMaterial.repeat.set(1, 5); // TODO: Fix the texture of the walls
 
-  const wallTextureMaterial = new THREE.MeshLambertMaterial({ map: wallMaterial, side: THREE.FrontSide });
+  const wallTextureMaterial = new THREE.MeshStandardMaterial({ map: wallMaterial, side: THREE.FrontSide });
 
   const leftWallMesh = new THREE.Mesh(leftWall, wallTextureMaterial);
   const rightWallMesh = new THREE.Mesh(rightWall, wallTextureMaterial);
 
   leftWallMesh.position.set(25, 2, 0);
   rightWallMesh.position.set(-25, 2, 0);
+
+  leftWallBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+  leftWallBB.setFromObject(leftWallMesh);
+
+  rightWallBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+  rightWallBB.setFromObject(rightWallMesh);
 
   scene.add(leftWallMesh);
   scene.add(rightWallMesh);
@@ -499,7 +523,8 @@ function init() {
   const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x23da23 });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-  floor.receiveShadow = true;
+  // floor.receiveShadow = true;
+  // floor.castShadow = true;
   scene.add(floor);
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -518,9 +543,25 @@ function onWindowResize() {
   keyDisplayQueue.updatePosition();
 }
 
+function checkCollisions() {
+  if (soldierBB.intersectsBox(leftWallBB) || soldierBB.intersectsBox(rightWallBB)) {
+    console.log("collision");
+    characterControls.moveAwayFromWalls();
+  }
+}
+
+// this function randomly changes the positions of all the tiles
+function moveTiles() {}
+
 // animation function that gets called 60 times a second, I think
 function animate() {
   requestAnimationFrame(animate);
+
+  if (model !== undefined) {
+    soldierBB.setFromObject(model.children[0]);
+    // soldierBB.copy(model.children[0]).applyMatrix4(model.matrixWorld);
+    checkCollisions();
+  }
 
   let mixerUpdateDelta = clock.getDelta();
   if (characterControls) {
@@ -547,48 +588,50 @@ function animate() {
   //   personBoundingBox.copy(personObject.geometry.boundingBox).applyMatrix4(personObject.matrixWorld);
   // }
 
+  // raycaster.intersect();
+
   const time = performance.now();
 
   if (controls.isLocked === true) {
-    raycaster.ray.origin.copy(controls.getObject().position);
+    raycaster.ray.origin.copy(model.children[0].position);
     raycaster.ray.origin.y -= 10;
 
-    // const intersections = raycaster.intersectObjects(objects, false);
+    const intersections = raycaster.intersectObjects(tiles, false);
 
-    // const onObject = intersections.length > 0;
+    const onObject = intersections.length > 0;
 
     const delta = (time - prevTime) / 1000;
 
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
+    // velocity.x -= velocity.x * 10.0 * delta;
+    // velocity.z -= velocity.z * 10.0 * delta;
 
-    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+    // velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
 
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.normalize(); // this ensures consistent movements in all directions
+    // direction.z = Number(moveForward) - Number(moveBackward);
+    // direction.x = Number(moveRight) - Number(moveLeft);
+    // direction.normalize(); // this ensures consistent movements in all directions
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+    // if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    // if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
 
-    // if (onObject === true) {
+    if (onObject === true) {
+      // velocity.y = Math.max(0, velocity.y);
+      // canJump = true;
 
-    //     velocity.y = Math.max(0, velocity.y);
-    //     canJump = true;
-
-    // }
-
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
-
-    controls.getObject().position.y += velocity.y * delta; // new behavior
-
-    if (controls.getObject().position.y < 10) {
-      velocity.y = 0;
-      controls.getObject().position.y = 10;
-
-      canJump = true;
+      console.log("tiles");
     }
+
+    // controls.moveRight(-velocity.x * delta);
+    // controls.moveForward(-velocity.z * delta);
+
+    // controls.getObject().position.y += velocity.y * delta; // new behavior
+
+    // if (controls.getObject().position.y < 10) {
+    //   velocity.y = 0;
+    //   controls.getObject().position.y = 10;
+
+    //   canJump = true;
+    // }
   }
 
   // prevTime = time;

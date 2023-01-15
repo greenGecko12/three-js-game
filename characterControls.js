@@ -1,5 +1,7 @@
+// THIS CODE WAS TAKEN FROM A YOUTUBE TUTORIAL
+// https://www.youtube.com/watch?v=C3s0UHpwlf8
+
 import * as THREE from "./node_modules/three/build/three.module.js";
-// import { OrbitControls } from "./node_modules/three/examples/jsm/controls/OrbitControls";
 
 const W = "w";
 const A = "a";
@@ -8,12 +10,6 @@ const D = "d";
 const DIRECTIONS = [W, A, S, D];
 
 export class CharacterControls {
-  // model: THREE.Group;
-  // mixer: THREE.AnimationMixer;
-  // animationsMap: Map<string, THREE.AnimationAction> = new Map(); // Walk, Run, Idle
-  // orbitControl: OrbitControls;
-  // camera: THREE.Camera;
-
   // state
   toggleRun = true;
   currentAction;
@@ -28,6 +24,10 @@ export class CharacterControls {
   fadeDuration = 0.2;
   runVelocity = 30;
   walkVelocity = 20;
+
+  // past velocity
+  lastXSpeed = 0;
+  lastZSpeed = 0;
 
   constructor(model, mixer, animationsMap, orbitControl, camera, currentAction) {
     this.model = model;
@@ -99,8 +99,17 @@ export class CharacterControls {
       const moveZ = this.walkDirection.z * velocity * delta;
       this.model.position.x += moveX;
       this.model.position.z += moveZ;
+
+      this.lastXSpeed = moveX;
+      this.lastZSpeed = moveZ;
+
       this.updateCameraTarget(moveX, moveZ);
     }
+  }
+
+  moveAwayFromWalls() {
+    this.model.position.x -= this.lastXSpeed;
+    this.model.position.z -= this.lastZSpeed;
   }
 
   updateCameraTarget(moveX, moveZ) {

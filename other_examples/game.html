@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document1</title>
+</head>
+
+<body>
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script>
+        // Set up the scene, camera, and renderer
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Create the player cube
+        var cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
+        var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        scene.add(cube);
+        camera.position.z = 5;
+
+        // Create the collectible spheres
+        var sphereGeometry = new THREE.SphereGeometry(0.5);
+        var sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        var spheres = [];
+        for (var i = 0; i < 10; i++) {
+            var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.x = (Math.random() - 0.5) * 10;
+            sphere.position.y = (Math.random() - 0.5) * 10;
+            sphere.position.z = (Math.random() - 0.5) * 10;
+            scene.add(sphere);
+            spheres.push(sphere);
+        }
+
+        // Set up player movement
+        var speed = 0.1;
+        var score = 0;
+        document.addEventListener("keydown", onDocumentKeyDown, false);
+        function onDocumentKeyDown(event) {
+            var keyCode = event.which;
+            if (keyCode == 37) {
+                cube.position.x -= speed;
+            } else if (keyCode == 38) {
+                cube.position.y += speed;
+            } else if (keyCode == 39) {
+                cube.position.x += speed;
+            } else if (keyCode == 40) {
+                cube.position.y -= speed;
+            }
+        }
+
+        // Check for sphere collision
+        function checkCollision() {
+            for (var i = 0; i < spheres.length; i++) {
+                var sphere = spheres[i];
+                var distance = cube.position.distanceTo(sphere.position);
+                if (distance < 1) {
+                    scene.remove(sphere);
+                    spheres.splice(i, 1);
+                    score++;
+                    console.log("Score: " + score);
+                    break;
+                }
+            }
+        }
+
+        // Render the scene
+        function render() {
+            requestAnimationFrame(render);
+            checkCollision();
+            renderer.render(scene, camera);
+        }
+        render();
+    </script>
+
+</body>
+
+</html>
