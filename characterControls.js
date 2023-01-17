@@ -1,4 +1,4 @@
-// THIS CODE WAS TAKEN FROM A YOUTUBE TUTORIAL
+// THIS CODE WAS TAKEN FROM A YOUTUBE TUTORIAL AND MODIFIED SLIGHTLY TO MEET MY OWN REQUIREMENTS
 // https://www.youtube.com/watch?v=C3s0UHpwlf8
 
 import * as THREE from "./node_modules/three/build/three.module.js";
@@ -40,7 +40,8 @@ export class CharacterControls {
       }
     });
     this.orbitControl = orbitControl;
-    this.camera = camera;
+    this.cameras = camera;
+    this.camera = this.cameras[0];
     this.updateCameraTarget(0, 0);
   }
 
@@ -84,7 +85,7 @@ export class CharacterControls {
       // + + Math.PI/2
 
       // rotate model
-      this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset );
+      this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
       this.model.quaternion.rotateTowards(this.rotateQuarternion, 0.2);
 
       // calculate direction
@@ -114,18 +115,29 @@ export class CharacterControls {
   //   this.model.position.z -= this.lastZSpeed;
   // }
 
-  // moveCameraToOppositeSide(){
-
-  // }
-
-
+  switchCamera() {
+    if (this.camera == this.cameras[0]) {
+      this.camera = this.cameras[1];
+    } else {
+      this.camera = this.cameras[0];
+    }
+  }
 
   updateCameraTarget(moveX, moveZ) {
-    // move camera
+    // move actual camera
     this.camera.position.x += moveX;
     this.camera.position.z += moveZ;
 
-    // update camera target
+    // UPDATE BOTH CAMERA POSITIONS HERE
+    if (this.camera == this.cameras[0]) {
+      // move second camera (which is not shown)
+      this.cameras[1].position.x += moveX;
+      this.cameras[1].position.z += moveZ;
+    } else {
+      this.cameras[0].position.x += moveX;
+      this.cameras[0].position.z += moveZ;
+    }
+    // update camera target - where the camera is looking at basically
     this.cameraTarget.x = this.model.position.x;
     this.cameraTarget.y = this.model.position.y + 1;
     this.cameraTarget.z = this.model.position.z;

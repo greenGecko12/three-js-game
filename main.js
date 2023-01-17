@@ -8,6 +8,7 @@ import { CharacterControls } from "./characterControls.js";
 let peekbackCamera; // this is the second camera view that allows you to peek "back"
 let camera, scene, renderer, controls;
 let mainCamera;
+const cameras = [];
 
 const tiles = []; // TODO: all the tile objects to this array later
 const alienObjects = [];
@@ -82,7 +83,7 @@ function loadSoldier() {
       if (object.isMesh) object.castShadow = true;
     });
     model.scale.set(4, 4, 4);
-    //model.position.set(0, 5, -200);
+    model.position.set(0, 2, 80);
 
     soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     soldierBB.setFromObject(model.children[0]);
@@ -97,7 +98,7 @@ function loadSoldier() {
         animationsMap.set(a.name, mixer.clipAction(a));
       });
 
-    characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, mainCamera, "Idle");
+    characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, cameras, "Idle");
   });
 }
 
@@ -372,15 +373,17 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.y = 10;
-  camera.position.z = +130;
+  camera.position.y = 20;
+  // camera.position.z = -20;
   //camera.lookAt(-100, 100, -10);
 
   peekbackCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   peekbackCamera.position.y = 10;
-  peekbackCamera.position.z = -30;
+  // peekbackCamera.position.z = 10;
 
-  mainCamera = peekbackCamera;
+  mainCamera = camera;
+
+  cameras.push(camera, peekbackCamera);
 
   scene = new THREE.Scene();
   //scene.background = new THREE.Color(0xde45e3);
@@ -449,22 +452,11 @@ function init() {
     instructions.style.display = "none";
     blocker.style.display = "none";
     clock.start();
-
-    // if (clock.running === false){
-    //   clock.running = true;
-    // }
-    // else {
-    //   clock.start();
-    // }
-    // clock.startTime = time;
   });
 
   controls.addEventListener("unlock", function () {
     blocker.style.display = "block";
     instructions.style.display = "";
-    // clock.stop();
-    // time = clock.oldTime;
-    // clock.running = false;
   });
 
   scene.add(controls.getObject());
@@ -480,6 +472,16 @@ function init() {
         characterControls.switchRunToggle();
       } else {
         keysPressed[event.key.toLowerCase()] = true;
+      }
+
+      // this indicates that the user wants to switch between the two camera views
+      if (event.code === "KeyB") {
+        characterControls.switchCamera();
+        if (mainCamera === camera) {
+          mainCamera = peekbackCamera;
+        } else {
+          mainCamera = camera;
+        }
       }
     },
     false
