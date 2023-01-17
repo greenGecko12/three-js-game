@@ -33,3 +33,9 @@ ADD SOME SHADOWS TOO!
 NOT working:
 Orbit controls
 need to position the soldier properly.
+
+collision with walls
+check if you're stepping on a tile
+move the tiles about
+add the "zombies" back in
+implement a timer - done

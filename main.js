@@ -1,10 +1,3 @@
-// import * as THREE from "./three";
-// import { PointerLockControls } from "./three/examples/jsm/controls/PointerLockControls.js"; // might not need this in the end
-// import { OrbitControls } from "./three/examples/jsm/controls/OrbitControls.js";
-// import { GLTFLoader } from "/three/examples/jsm/loaders/GLTFLoader.js";
-// import { KeyDisplay } from "./helpers/util.js";
-// import { CharacterControls } from "./characterControls.js";
-
 import * as THREE from "./node_modules/three/build/three.module.js";
 import { PointerLockControls } from "./node_modules/three/examples/jsm/controls/PointerLockControls.js"; // might not need this in the end
 import { OrbitControls } from "./node_modules/three/examples/jsm/controls/OrbitControls.js";
@@ -12,7 +5,9 @@ import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader
 import { KeyDisplay } from "./helpers/util.js";
 import { CharacterControls } from "./characterControls.js";
 
+let peekbackCamera; // this is the second camera view that allows you to peek "back"
 let camera, scene, renderer, controls;
+let mainCamera;
 
 const tiles = []; // TODO: all the tile objects to this array later
 const alienObjects = [];
@@ -31,6 +26,8 @@ let personObject;
 let raycaster;
 let lives = 3;
 let heartObjects = [];
+
+let time;
 
 let gameOver = false;
 let gameStart = false; // TODO: use this variable later on in the process.
@@ -100,7 +97,7 @@ function loadSoldier() {
         animationsMap.set(a.name, mixer.clipAction(a));
       });
 
-    characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, camera, "Idle");
+    characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, mainCamera, "Idle");
   });
 }
 
@@ -375,9 +372,15 @@ function init() {
   document.body.appendChild(renderer.domElement);
 
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.y = 100;
-  camera.position.z = 130;
+  camera.position.y = 10;
+  camera.position.z = +130;
   //camera.lookAt(-100, 100, -10);
+
+  peekbackCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  peekbackCamera.position.y = 10;
+  peekbackCamera.position.z = -30;
+
+  mainCamera = peekbackCamera;
 
   scene = new THREE.Scene();
   //scene.background = new THREE.Color(0xde45e3);
@@ -433,7 +436,7 @@ function init() {
   scene.background = texture;
 
   // locks in the mouse basically so you can't see
-  controls = new PointerLockControls(camera, document.body);
+  controls = new PointerLockControls(mainCamera, document.body);
 
   const blocker = document.getElementById("blocker");
   const instructions = document.getElementById("instructions");
@@ -445,11 +448,23 @@ function init() {
   controls.addEventListener("lock", function () {
     instructions.style.display = "none";
     blocker.style.display = "none";
+    clock.start();
+
+    // if (clock.running === false){
+    //   clock.running = true;
+    // }
+    // else {
+    //   clock.start();
+    // }
+    // clock.startTime = time;
   });
 
   controls.addEventListener("unlock", function () {
     blocker.style.display = "block";
     instructions.style.display = "";
+    // clock.stop();
+    // time = clock.oldTime;
+    // clock.running = false;
   });
 
   scene.add(controls.getObject());
@@ -537,21 +552,27 @@ function init() {
 function init2() {}
 
 function onWindowResize() {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
+  mainCamera.aspect = window.innerWidth / window.innerHeight;
+  mainCamera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   keyDisplayQueue.updatePosition();
 }
 
-function checkCollisions() {
-  if (soldierBB.intersectsBox(leftWallBB) || soldierBB.intersectsBox(rightWallBB)) {
-    console.log("collision");
-    characterControls.moveAwayFromWalls();
-  }
-}
+// function checkCollisions() {
+//   if (soldierBB.intersectsBox(leftWallBB) || soldierBB.intersectsBox(rightWallBB)) {
+//     console.log("collision");
+//     characterControls.moveAwayFromWalls();
+//   }
+// }
 
 // this function randomly changes the positions of all the tiles
 function moveTiles() {}
+
+function updateTimer() {
+  const domElement = document.getElementById("timer");
+
+  domElement.innerText = parseInt(clock.getElapsedTime());
+}
 
 // animation function that gets called 60 times a second, I think
 function animate() {
@@ -560,7 +581,7 @@ function animate() {
   if (model !== undefined) {
     soldierBB.setFromObject(model.children[0]);
     // soldierBB.copy(model.children[0]).applyMatrix4(model.matrixWorld);
-    checkCollisions();
+    // checkCollisions();
   }
 
   let mixerUpdateDelta = clock.getDelta();
@@ -568,8 +589,9 @@ function animate() {
     characterControls.update(mixerUpdateDelta, keysPressed);
   }
   orbitControls.update();
-  renderer.render(scene, camera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
+  renderer.render(scene, mainCamera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
 
+  updateTimer();
   // if (personObject != undefined){
   //     if (flag){
   //         updateAlienPositions();

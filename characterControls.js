@@ -81,8 +81,10 @@ export class CharacterControls {
       // diagonal movement angle offset
       var directionOffset = this.directionOffset(keysPressed);
 
+      // + + Math.PI/2
+
       // rotate model
-      this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset);
+      this.rotateQuarternion.setFromAxisAngle(this.rotateAngle, angleYCameraDirection + directionOffset );
       this.model.quaternion.rotateTowards(this.rotateQuarternion, 0.2);
 
       // calculate direction
@@ -100,17 +102,23 @@ export class CharacterControls {
       this.model.position.x += moveX;
       this.model.position.z += moveZ;
 
-      this.lastXSpeed = moveX;
-      this.lastZSpeed = moveZ;
+      // this.lastXSpeed = moveX;
+      // this.lastZSpeed = moveZ;
 
       this.updateCameraTarget(moveX, moveZ);
     }
   }
 
-  moveAwayFromWalls() {
-    this.model.position.x -= this.lastXSpeed;
-    this.model.position.z -= this.lastZSpeed;
-  }
+  // moveAwayFromWalls() {
+  //   this.model.position.x -= this.lastXSpeed;
+  //   this.model.position.z -= this.lastZSpeed;
+  // }
+
+  // moveCameraToOppositeSide(){
+
+  // }
+
+
 
   updateCameraTarget(moveX, moveZ) {
     // move camera
