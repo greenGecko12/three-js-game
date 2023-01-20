@@ -1,6 +1,6 @@
 // THIS CODE WAS BORROWED FROM A YOUTUBE TUTORIAL
 // HERE IS THE LINKED GITHUB REPO: https://github.com/tamani-coding/threejs-character-controls-example/blob/main/src/utils.ts
-// I removed the type to convert the TypeScript into JavaScript
+// I removed the types to convert the TypeScript into JavaScript
 const W = "w";
 const A = "a";
 const S = "s";

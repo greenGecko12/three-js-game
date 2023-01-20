@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Level 1</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="./main.css">
+</head>
+
+<body>
+    <p class="fixed" id="numberOfLives"></p>
+    <div class="fixed-centre">
+        <div style="display: inline-block;">
+            <p>Zombie Count</p>
+            <p id="zombies"></p>
+        </div>
+    </div>
+
+    <div id="blocker">
+        <div id="instructions">
+            <p id="title">
+                Level 1: Shoot the zombies
+            </p>
+            <div class="largefont">
+                <p>
+                    This level is very simple to play. All you have to shoot the zombies. You can shoot them to your
+                    heart's content in fact.
+                </p>
+                <p>
+                    Don't the zombies touch you or you lose a life. You start with 3 lives and you lose if you lose
+                    all three lives. The number of lives is represented by the number of hearts above the character.
+                </p>
+                <p>
+                    Shooting the zombies will get rid of them. However for every zombie you shoot, another one will be
+                    added to the game giving you a (practically) infinite stream of enemies.
+                </p>
+                <p>
+                    If you
+                    ever need to read these instructions again then press the "Esc" key on your keyboard. Finally, if
+                    you want to return to the main menu then press the button below.
+                </p>
+                <p>
+                    Move: WASD<br />
+                    Jump: SPACE<br />
+                    Look: MOUSE <br />
+                    Shoot: Left mouse click
+                </p>
+            </div>
+            <h1 id="goodluck"> Click to start!! Good luck. </h1>
+            <a href="index.html"><button class="button-63">Return to Main menu</button></a>
+        </div>
+    </div>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+	</script>
+
+    <script type="module" charset="utf-8" src="level1.js"></script>
+</body>
+
+</html>

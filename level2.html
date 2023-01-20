@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Level 2</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="./main.css">
+</head>
+
+<body>
+    <p class="fixed" id="numberOfLives"></p>
+    <div class="fixed-centre">
+        <div style="display: inline-block;">
+            <p>Timer</p>
+            <p id="timer"></p>
+        </div>
+    </div>
+
+    <div id="blocker">
+        <div id="instructions">
+            <p id="title">
+                Level 2: Cross the bridge
+            </p>
+            <div class="largefont">
+                <p>
+                    You start at one end of a plane and have to reach the other end in as quick as time as possible.
+                </p>
+                <p>
+                    Don't the touch the red tiles or you lose a life. You start with 3 lives and you lose if you lose
+                    all three lives. The number of lives is represented by the number of hearts at the top left of the
+                    screen.
+                </p>
+                <p>
+                    If you ever need to read these instructions again then press the "Esc" key on your keyboard. If you
+                    want to navigate back to the menu page, press the back on your browser to get back to index.html
+                    from where you'll be able to play Level 1. Alternatively, you can just click the button below which
+                    will do the same job.
+                </p>
+                <p> Oh, one thing I forgot to mention is that you can't look forward! Otherwise, the game would be way
+                    too easy!!! To
+                    have a peek forward, press "B" on your keyboard.</p>
+                <p>
+                    Move: WASD<br />
+                    Look: MOUSE <br />
+                    Switch camera: B
+                </p>
+            </div>
+            <h1 id="goodluck"> Click to start!! Good luck. </h1>
+            <a href="index.html"><button class="button-63">Return to Main menu</button></a>
+        </div>
+    </div>
+
+    <!-- Import maps polyfill -->
+    <!-- Remove this when import maps will be widely supported -->
+    <script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.module.js",
+					"three/addons/": "./jsm/"
+				}
+			}
+	</script>
+
+    <script type="module" charset="utf-8" src="level2.js"></script>
+</body>
+
+</html>

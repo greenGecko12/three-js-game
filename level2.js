@@ -5,12 +5,17 @@ import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader
 import { KeyDisplay } from "./helpers/util.js";
 import { CharacterControls } from "./characterControls.js";
 
+//Have a variable which determine which level is currently being shown
+
+// variables for one level
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 let peekbackCamera; // this is the second camera view that allows you to peek "back"
 let camera, scene, renderer, controls;
 let mainCamera;
 const cameras = [];
 
-const tiles = []; // TODO: all the tile objects to this array later
+const tiles = []; // holds each tile on the plane
+const tileSpeeds = []; // dictates what the behaviour of each tile will be
 const alienObjects = [];
 const hearts = [];
 
@@ -29,25 +34,19 @@ let lives = 3;
 let heartObjects = [];
 
 let time;
-
 let gameOver = false;
 let gameStart = false; // TODO: use this variable later on in the process.
 
-const diffTiles = 10;
-let tileSize = 5;
 const planeWidth = 50;
 const planeLength = 250;
 const startAreasize = 20;
 
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-let canJump = false;
+// these are kind of arbitrary, may change later on
+const tileSize = parseInt(planeWidth / 7);
+const numberOfTiles = 20;
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
-const direction = new THREE.Vector3();
 let playerPosition = new THREE.Vector3();
 
 const fov = 75;
@@ -64,7 +63,6 @@ let keysPressed;
 // These variable are temporary - remove them when collision fully working.
 let cube2;
 let cube2BB;
-////////////////////////////////////////////////////////////////////////
 let soldierBB; // bounding box for the soldier
 let model;
 
@@ -78,12 +76,11 @@ function loadSoldier() {
   // MODEL WITH ANIMATIONS
   new GLTFLoader().load("models/Soldier.glb", function (gltf) {
     model = gltf.scene;
-    console.log(model); // THREE js Group
     model.traverse(function (object) {
       if (object.isMesh) object.castShadow = true;
     });
-    model.scale.set(4, 4, 4);
-    model.position.set(0, 2, 80);
+    model.scale.set(3.5, 3.5, 3.5);
+    model.position.set(0, 0, 110);
 
     soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     soldierBB.setFromObject(model.children[0]);
@@ -197,31 +194,23 @@ function getRandomInt(min, max) {
 }
 
 function generateTiles() {
-  const minTileSize = planeWidth / 6;
-  const maxTileSize = planeWidth / 10;
-
-  const minNumberOfTiles = parseInt(planeLength / planeWidth);
-  const maxNumberOfTiles = parseInt(planeLength / planeWidth) + diffTiles;
-
-  const numberOfTiles = parseInt(getRandomInt(minNumberOfTiles, maxNumberOfTiles) * Math.random() * 2.5) + getRandomInt(-4, 5);
-
   // box material
   const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xd0312d });
   // box geometry
   let BoxGeometry;
   let box;
-
   // loop to create all the tiles and then add them to the scene
   for (let i = 0; i < numberOfTiles; i++) {
-    BoxGeometry = new THREE.BoxGeometry(getRandomInt(minTileSize, maxTileSize), 0, getRandomInt(minTileSize, maxTileSize));
+    BoxGeometry = new THREE.BoxGeometry(tileSize, 0, tileSize);
     box = new THREE.Mesh(BoxGeometry, boxMaterial);
     box.position.set(
-      getRandomInt(-planeWidth / 2 + startAreasize, planeWidth / 2 - startAreasize),
+      getRandomInt(-planeWidth / 2 + startAreasize, planeWidth / 2 - startAreasize) + getRandomInt(-planeWidth / 3, planeWidth / 3),
       0.01,
       getRandomInt(-planeLength / 2 + startAreasize, planeLength / 2 - startAreasize)
     );
     scene.add(box);
     tiles.push(box);
+    tileSpeeds.push(Math.random() * Math.random()); // determining the behaviour of the tile
   }
 }
 
@@ -374,12 +363,12 @@ function init() {
 
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.y = 20;
-  // camera.position.z = -20;
+  camera.position.z = -20;
   //camera.lookAt(-100, 100, -10);
 
   peekbackCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   peekbackCamera.position.y = 10;
-  // peekbackCamera.position.z = 10;
+  peekbackCamera.position.z = -20;
 
   mainCamera = camera;
 
@@ -483,6 +472,10 @@ function init() {
           mainCamera = camera;
         }
       }
+
+      if (event.code === "KeyP") {
+        console.log(model.position.x, model.position.y, model.position.z);
+      }
     },
     false
   );
@@ -549,10 +542,6 @@ function init() {
   window.addEventListener("resize", onWindowResize);
 }
 
-// this renders the second scene
-// right now the idea is just to make the same shooting game but a bit harder
-function init2() {}
-
 function onWindowResize() {
   mainCamera.aspect = window.innerWidth / window.innerHeight;
   mainCamera.updateProjectionMatrix();
@@ -567,16 +556,88 @@ function onWindowResize() {
 //   }
 // }
 
-// this function randomly changes the positions of all the tiles
-function moveTiles() {}
+//
+
+// this function "randomly" changes the positions of all the tiles
+// some tiles move fast and some move slow
+function moveTiles() {
+  let tileObject;
+  for (let tile in tiles) {
+    // we don't change the y coordinate of the tile, just the x and z coordinates
+    tileObject = tiles[tile];
+    if (tileObject.position.x < -(planeWidth / 2 - tileSize / 2 - 5) || tileObject.position.x > planeWidth / 2 - tileSize / 2 - 5) {
+      tileSpeeds[tile] *= -1;
+    }
+    tileObject.position.x += tileSpeeds[tile];
+    // } else {
+    //   // fast tile
+    //   if (tileObject.position.x < -(planeWidth / 2 - tileSize / 2)) {
+    //     tileObject.position.x += fastTileSpeed;
+    //   } else if (tileObject.position.x > planeWidth / 2 - tileSize / 2) {
+    //     tileObject.position.x -= fastTileSpeed;
+    //   } else {
+    //     tileObject.position.x += fastTileSpeed;
+    //   }
+    // }
+  }
+}
 
 function updateTimer() {
   const domElement = document.getElementById("timer");
-
   domElement.innerText = parseInt(clock.getElapsedTime());
 }
 
-// animation function that gets called 60 times a second, I think
+function animate2() {
+  requestAnimationFrame(animate2);
+
+  const time = performance.now();
+
+  if (controls.isLocked === true) {
+    // raycaster.ray.origin.copy(controls.getObject().position);
+    // raycaster.ray.origin.y -= 10;
+
+    // const intersections = raycaster.intersectObjects(objects, false);
+
+    // const onObject = intersections.length > 0;
+
+    const delta = (time - prevTime) / 1000;
+
+    velocity.x -= velocity.x * 10.0 * delta;
+    velocity.z -= velocity.z * 10.0 * delta;
+
+    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.normalize(); // this ensures consistent movements in all directions
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+
+    // if (onObject === true) {
+    //   velocity.y = Math.max(0, velocity.y);
+    //   canJump = true;
+    // }
+
+    controls.moveRight(-velocity.x * delta);
+    controls.moveForward(-velocity.z * delta);
+
+    controls.getObject().position.y += velocity.y * delta; // new behavior
+
+    if (controls.getObject().position.y < 10) {
+      velocity.y = 0;
+      controls.getObject().position.y = 10;
+
+      canJump = true;
+    }
+  }
+
+  prevTime = time;
+
+  renderer.render(scene2, camera2);
+}
+
+// animation function that gets called 60 times a second,
 function animate() {
   requestAnimationFrame(animate);
 
@@ -594,6 +655,9 @@ function animate() {
   renderer.render(scene, mainCamera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
 
   updateTimer();
+
+  moveTiles();
+
   // if (personObject != undefined){
   //     if (flag){
   //         updateAlienPositions();
