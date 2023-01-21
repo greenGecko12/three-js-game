@@ -69,6 +69,8 @@ let model;
 let leftWallBB;
 let rightWallBB;
 
+const dampingFactor = 0.2;
+
 init();
 animate();
 
@@ -97,33 +99,6 @@ function loadSoldier() {
 
     characterControls = new CharacterControls(model, mixer, animationsMap, orbitControls, cameras, "Idle");
   });
-}
-
-function loadModel(path) {
-  const loader = new GLTFLoader();
-
-  loader.load(
-    path,
-    function (gltf) {
-      // gltf.scene.position.set( 0, 20, 10 );
-      // console.log(gltf.scene)
-
-      personObject = gltf.scene.children[0];
-      personObject.position.set(0, 5, 115);
-      personObject.rotateY(Math.PI);
-      personObject.castShadow = true;
-      personObject.receiveShadow = true;
-
-      // we need to make a bounding box for the human avatar
-      personBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-      personBoundingBox.setFromObject(personObject);
-      scene.add(personObject);
-    },
-    undefined,
-    function (error) {
-      console.error(error);
-    }
-  );
 }
 
 function renderNumberOfHearts() {
@@ -210,7 +185,7 @@ function generateTiles() {
     );
     scene.add(box);
     tiles.push(box);
-    tileSpeeds.push(Math.random() * Math.random()); // determining the behaviour of the tile
+    tileSpeeds.push(Math.random() * dampingFactor); // determining the behaviour of the tile
   }
 }
 
@@ -508,7 +483,7 @@ function init() {
   const wallMaterial = wallTextureLoader.load("./textures/fence_texture.jpg");
   wallMaterial.wrapS = THREE.RepeatWrapping;
   wallMaterial.wrapT = THREE.RepeatWrapping;
-  wallMaterial.repeat.set(1, 5); // TODO: Fix the texture of the walls
+  wallMaterial.repeat.set(1, 40);
 
   const wallTextureMaterial = new THREE.MeshStandardMaterial({ map: wallMaterial, side: THREE.FrontSide });
 
@@ -529,8 +504,12 @@ function init() {
 
   // makes the plane a proper plane (otherwise it defaults to a vertical plane)
   floorGeometry.rotateX(-Math.PI / 2);
+  const floorTexture = wallTextureLoader.load("./textures/rainbowroad.jpg");
+  floorTexture.wrapS = THREE.RepeatWrapping;
+  floorTexture.wrapT = THREE.RepeatWrapping;
+  floorTexture.repeat.set(1, 20);
 
-  const floorMaterial = new THREE.MeshLambertMaterial({ color: 0x23da23 });
+  const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, side: THREE.FrontSide });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   // floor.receiveShadow = true;
@@ -565,7 +544,7 @@ function moveTiles() {
   for (let tile in tiles) {
     // we don't change the y coordinate of the tile, just the x and z coordinates
     tileObject = tiles[tile];
-    if (tileObject.position.x < -(planeWidth / 2 - tileSize / 2 - 5) || tileObject.position.x > planeWidth / 2 - tileSize / 2 - 5) {
+    if (tileObject.position.x < -(planeWidth / 2 - tileSize / 2) || tileObject.position.x > planeWidth / 2 - tileSize / 2) {
       tileSpeeds[tile] *= -1;
     }
     tileObject.position.x += tileSpeeds[tile];
@@ -585,56 +564,6 @@ function moveTiles() {
 function updateTimer() {
   const domElement = document.getElementById("timer");
   domElement.innerText = parseInt(clock.getElapsedTime());
-}
-
-function animate2() {
-  requestAnimationFrame(animate2);
-
-  const time = performance.now();
-
-  if (controls.isLocked === true) {
-    // raycaster.ray.origin.copy(controls.getObject().position);
-    // raycaster.ray.origin.y -= 10;
-
-    // const intersections = raycaster.intersectObjects(objects, false);
-
-    // const onObject = intersections.length > 0;
-
-    const delta = (time - prevTime) / 1000;
-
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
-
-    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
-
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.normalize(); // this ensures consistent movements in all directions
-
-    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-
-    // if (onObject === true) {
-    //   velocity.y = Math.max(0, velocity.y);
-    //   canJump = true;
-    // }
-
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
-
-    controls.getObject().position.y += velocity.y * delta; // new behavior
-
-    if (controls.getObject().position.y < 10) {
-      velocity.y = 0;
-      controls.getObject().position.y = 10;
-
-      canJump = true;
-    }
-  }
-
-  prevTime = time;
-
-  renderer.render(scene2, camera2);
 }
 
 // animation function that gets called 60 times a second,

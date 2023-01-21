@@ -25,6 +25,7 @@ let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
 let canJump = false;
+let gameOver = false;
 
 const fov = 75;
 const aspect = window.innerWidth / window.innerHeight;
@@ -32,10 +33,11 @@ const near = 1.0;
 const far = 1000.0;
 
 const floorSize = 200;
+const slack = parseInt(floorSize / 10);
 const wallHeight = 50;
 const wallDepth = 5;
 const heartSymbol = "&#10084; "; // html code for a heart
-const numberOfZombies = 7; // each zombie has its own speed and direction
+const numberOfZombies = 6; // each zombie has its own direction (same speed though)
 
 const bullets = [];
 
@@ -44,10 +46,37 @@ let verticalCrosshairLine;
 let horizontalCrosshairLine;
 let horizontalMesh;
 let veticalMesh;
+const dampingFactor = 0.4; // decreases the speed of the zombies
+
+// used in zombie collision
+const X_edge = floorSize / 2;
+const Z_edge = X_edge; // same value because the floor is a square
+const zombieCollisionSlack = 4;
+
+let randomDirection;
+const randomDirections = [];
+for (let i = 0; i < numberOfZombies; i++) {
+  randomDirection = new THREE.Vector3(Math.random() * dampingFactor, 0, Math.random() * dampingFactor);
+  randomDirections.push(randomDirection);
+}
 
 init();
 animate();
 
+function loseLife() {
+  lives -= 1;
+  console.log(lives);
+  if (lives == 0) {
+    gameOver = true;
+  }
+
+  //Updates the number of hearts being displayed
+  if (lives > -1) {
+    renderNumberOfHearts();
+  }
+}
+
+// this function also displays number of zombies killed
 function renderNumberOfHearts() {
   const livesLeft = document.getElementById("numberOfLives");
   let string = "Lives: ".concat(heartSymbol.repeat(lives));
@@ -58,7 +87,6 @@ function increaseZombieCount() {
   zombiesKilled += 1;
   const domElement = document.getElementById("zombies");
   domElement.innerText = zombiesKilled;
-  spawnNewZombie();
 }
 
 // I think zombies should keep moving in a straight line
@@ -66,16 +94,22 @@ function increaseZombieCount() {
 
 // for every zombie that is killed a new one is added back in the game
 // random location (not the same location as the user) and random direction
-function spawnNewZombie() {}
+function spawnZombies() {
+  for (let i = 0; i < numberOfZombies; i++) {
+    loadZombie();
+  }
+}
 
 // this function inserts the 4 walls into the scene
 function insertWalls() {
   //const cubeTextureLoader = new THREE.CubeTextureLoader();
-  // const wallMaterial = textureLoader.load("./textures/fence_texture.jpg");
-  // wallMaterial.wrapS = THREE.RepeatWrapping;
-  // wallMaterial.wrapT = THREE.RepeatWrapping;
-  // wallMaterial.repeat.set(10, 10);
-  const wallMaterial = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+  const wallMaterialL = textureLoader.load("./textures/brick_wall.jpg");
+  wallMaterialL.wrapS = THREE.RepeatWrapping;
+  wallMaterialL.wrapT = THREE.RepeatWrapping;
+  wallMaterialL.repeat.set(10, 2);
+
+  const wallMaterial = new THREE.MeshStandardMaterial({ map: wallMaterialL, side: THREE.FrontSide });
+  //const wallMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
   const wallGeometry = new THREE.BoxGeometry(floorSize, wallHeight, wallDepth);
 
@@ -102,10 +136,6 @@ function insertWalls() {
   walls.push(wall1, wall2, wall3, wall4); // for collisions
 }
 
-function detectCollisionWithWalls() {}
-
-function detectCollisionWithZombies() {}
-
 function insertCrossHair() {
   const crosshairMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
 
@@ -125,13 +155,67 @@ function insertCrossHair() {
   scene.add(veticalMesh, horizontalMesh);
 }
 
+// need to experiment with Quaterions to make the crosshair work properly
 function updateCrosshairPosition() {
   veticalMesh.position.set(camera.position.x, camera.position.y + 5, camera.position.z - 1);
   horizontalMesh.position.set(camera.position.x, camera.position.y + 5, camera.position.z - 1);
 }
 
 // load the actual zombie models inside this function using GlTF loader
-function loadZombie() {}
+function loadZombie() {
+  const loader = new GLTFLoader();
+
+  loader.load(
+    "models/Zombie.glb",
+    function (gltf) {
+      const zombieObject = gltf.scene.children[0];
+      zombieObject.position.set(
+        getRandomInt(-floorSize / 2 + slack, floorSize / 2 - slack),
+        9,
+        getRandomInt(-floorSize / 2 + slack, floorSize / 2 - slack)
+      );
+      zombieObject.scale.set(2, 2, 2);
+      zombieObject.rotateY(getRandomInt(-Math.PI, Math.PI));
+      // zombieObject.direction = new THREE.Vector3(1, 1, 1);
+      scene.add(zombieObject);
+      zombies.push(zombieObject);
+    },
+    undefined,
+    function (error) {
+      console.error(error);
+    }
+  );
+}
+
+/*
+TODO Next: 
+
+Bullet collision with Zombies and then respawning them
+In Level 2: camera fix, win detection, (maybe bouncing off walls)
+
+*/
+
+function animateZombies() {
+  for (let zombie in zombies) {
+    // zombies[zombie].lookAt(zombies[zombie].position + randomDirections[zombie]);
+
+    // check for collisions with walls here
+    if (
+      Math.abs(zombies[zombie].position.x) >= X_edge - zombieCollisionSlack ||
+      Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack
+    ) {
+      if (Math.abs(zombies[zombie].position.x) >= X_edge - zombieCollisionSlack) {
+        randomDirections[zombie].x *= -1;
+      }
+      if (Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack) {
+        randomDirections[zombie].z *= -1;
+      }
+    }
+    zombies[zombie].position.add(randomDirections[zombie]);
+  }
+
+  // console.log("Collision");
+}
 
 // create a new bullet and fires it
 function fireBullet() {
@@ -143,7 +227,7 @@ function fireBullet() {
   bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
 
   // set the velocity of the bullet
-  bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y));
+  bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y)); // Look into
 
   // after 1000ms, set alive to false and remove from scene
   // setting alive to false flags our update code to remove
@@ -157,6 +241,13 @@ function fireBullet() {
   // add to scene, array, and set the delay to 10 frames
   bullets.push(bullet);
   scene.add(bullet);
+}
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  // The maximum is exclusive and the minimum is inclusive
+  return Math.floor(Math.random() * (max - min) + min);
 }
 
 function init() {
@@ -184,10 +275,8 @@ function init() {
         break;
 
       case "Space":
-        // if (canJump === true) velocity.y += 200;
-        // canJump = false;
-        fireBullet();
-        console.log(bullets);
+        if (canJump === true) velocity.y += 200;
+        canJump = false;
         break;
     }
   };
@@ -236,11 +325,23 @@ function init() {
   dirLight.castShadow = true;
   scene.add(dirLight);
 
+  const dirLight2 = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
+  dirLight2.position.set(-70, 50, 100);
+  dirLight2.castShadow = true;
+  scene.add(dirLight2);
+
+  const dirLight3 = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
+  dirLight3.position.set(-70, 50, -100);
+  dirLight3.castShadow = true;
+  scene.add(dirLight3);
+
   document.addEventListener("keydown", onKeyDown);
   document.addEventListener("keyup", onKeyUp);
+  document.addEventListener("mousedown", fireBullet);
 
   insertWalls(); // thought it would be neater to put this code in its own function
   // insertCrossHair();
+  spawnZombies();
 
   raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
   controls = new PointerLockControls(camera, document.body);
@@ -276,6 +377,7 @@ function init() {
   const floorMaterial = new THREE.MeshStandardMaterial({ map: material, side: THREE.FrontSide });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.receiveShadow = true;
   scene.add(floor);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -310,23 +412,54 @@ function animate() {
 
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
-
-    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+    velocity.y -= 6.7 * 100.0 * delta; // 100.0 = mass
 
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize(); // this ensures consistent movements in all directions
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
+    // we also need to check whether the camera is moving out of bounds (i.e. it can't move outside the wall)
+    if (moveForward || moveBackward) {
+      // if (!(Math.abs(camera.position.z) < Z_edge - 10)) {
+      //   velocity.z = 0;
+      // } else {
+      velocity.z -= direction.z * 400.0 * delta;
+      // }
+    }
+    if (moveLeft || moveRight) {
+      // if (!(Math.abs(camera.position.x) < X_edge - 10)) {
+      //   velocity.x = 0;
+      // } else {
+      velocity.x -= direction.x * 400.0 * delta;
+      // }
+    }
 
     // if (onObject === true) {
     //   velocity.y = Math.max(0, velocity.y);
     //   canJump = true;
     // }
 
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
+    // check for camera collisions with walls here
+
+    // if (
+    //    >= X_edge - zombieCollisionSlack ||
+    //   Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack
+    // ) {
+    //   if (Math.abs(zombies[zombie].position.x) >= X_edge - zombieCollisionSlack) {
+    //     randomDirections[zombie].x *= -1;
+    //   }
+    //   if (Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack) {
+    //     randomDirections[zombie].z *= -1;
+    //   }
+    // }
+
+    if (Math.abs(camera.position.x) < X_edge - 10) {
+      controls.moveRight(-velocity.x * delta);
+    }
+
+    if (Math.abs(camera.position.z) < Z_edge - 10) {
+      controls.moveForward(-velocity.z * delta);
+    }
 
     controls.getObject().position.y += velocity.y * delta; // new behavior
 
@@ -351,6 +484,8 @@ function animate() {
 
       bullets[index].position.add(bullets[index].velocity);
     }
+
+    animateZombies();
   }
 
   prevTime = time;
