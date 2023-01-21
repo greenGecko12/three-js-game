@@ -488,7 +488,7 @@ function init() {
     false
   );
 
-  // what is a THREE.Raycaster --> lighting and shading basically
+  // what is a THREE.Raycaster --> for checking collisions basically
   raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 45);
 
   // floor - The first 2 arguments (width, height)
