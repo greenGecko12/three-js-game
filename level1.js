@@ -6,10 +6,17 @@ let camera, scene, renderer, controls;
 
 // these two arrays holds the objects for collision detection
 const zombies = [];
+const zombieBoundingBoxes = [];
+
+//bounding box for the bullet being checked for collision
+let bulletBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 const walls = [];
 
+let blocker;
+let instructions;
+
 let raycaster;
-let lives = 3;
+let lives = 1;
 let zombiesKilled = 0;
 
 let prevTime = performance.now();
@@ -25,7 +32,6 @@ let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
 let canJump = false;
-let gameOver = false;
 
 const fov = 75;
 const aspect = window.innerWidth / window.innerHeight;
@@ -52,6 +58,10 @@ const dampingFactor = 0.4; // decreases the speed of the zombies
 const X_edge = floorSize / 2;
 const Z_edge = X_edge; // same value because the floor is a square
 const zombieCollisionSlack = 4;
+const collisionThreshold = 2; // might change later as necessary
+
+let zombiePosition;
+let distance;
 
 let randomDirection;
 const randomDirections = [];
@@ -63,11 +73,44 @@ for (let i = 0; i < numberOfZombies; i++) {
 init();
 animate();
 
+// this function changes the position and the velocity of the zombie
+function respawnZombie(zombieIndex) {
+  zombies[zombieIndex].position.set(
+    getRandomInt(-floorSize / 2 + slack, floorSize / 2 - slack),
+    9,
+    getRandomInt(-floorSize / 2 + slack, floorSize / 2 - slack)
+  );
+
+  randomDirections[zombieIndex] = new THREE.Vector3(Math.random() * dampingFactor, 0, Math.random() * dampingFactor);
+}
+
+// for zombie collision with the user (i.e. the camera's coordinates)
+// if distance is less than a threshold then it counts as a "collision"
+function calculateEuclideanDistance(zombieIndex) {
+  zombiePosition = zombies[zombieIndex].position;
+
+  const total =
+    Math.pow(zombiePosition.x - camera.position.x, 2) +
+    Math.pow(zombiePosition.y - camera.position.y, 2) +
+    Math.pow(zombiePosition.z - camera.position.z, 2);
+  // console.log(total);
+  distance = Math.sqrt(total);
+
+  // true means a collision has happend
+  if (distance < collisionThreshold) {
+    respawnZombie(zombieIndex);
+    loseLife();
+  }
+}
+
 function loseLife() {
   lives -= 1;
-  console.log(lives);
-  if (lives == 0) {
-    gameOver = true;
+  if (lives <= 0) {
+    instructions.style.display = "none";
+    blocker.style.display = "none";
+    controls.unlock();
+    document.getElementById("level-instructions").style.display = "none";
+    // document.getElementById("gameover").style.display = "";
   }
 
   //Updates the number of hearts being displayed
@@ -164,6 +207,7 @@ function updateCrosshairPosition() {
 // load the actual zombie models inside this function using GlTF loader
 function loadZombie() {
   const loader = new GLTFLoader();
+  let zombieBoundingBox;
 
   loader.load(
     "models/Zombie.glb",
@@ -176,9 +220,13 @@ function loadZombie() {
       );
       zombieObject.scale.set(2, 2, 2);
       zombieObject.rotateY(getRandomInt(-Math.PI, Math.PI));
-      // zombieObject.direction = new THREE.Vector3(1, 1, 1);
       scene.add(zombieObject);
       zombies.push(zombieObject);
+
+      // adding the bounding box for collision
+      zombieBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+      zombieBoundingBox.setFromObject(zombieObject.children[0]);
+      zombieBoundingBoxes.push(zombieBoundingBox);
     },
     undefined,
     function (error) {
@@ -189,10 +237,8 @@ function loadZombie() {
 
 /*
 TODO Next: 
-
-Bullet collision with Zombies and then respawning them
+Bullet collision with Zombies and then respawning them, adding one to zombie count
 In Level 2: camera fix, win detection, (maybe bouncing off walls)
-
 */
 
 function animateZombies() {
@@ -212,15 +258,32 @@ function animateZombies() {
       }
     }
     zombies[zombie].position.add(randomDirections[zombie]);
-  }
+    zombies[zombie].rotateY((-Math.PI / 100) * Math.random());
 
-  // console.log("Collision");
+    // we need to update the bounding boxes of the zombies
+    zombieBoundingBoxes[zombie].setFromObject(zombies[zombie]);
+
+    calculateEuclideanDistance(zombie);
+
+    for (let bullet of bullets) {
+      if (bullet.alive === true) {
+        bulletBB.setFromObject(bullet);
+        if (bulletBB.intersectsBox(zombieBoundingBoxes[zombie])) {
+          // if the bullet collides with zombie then we have to respawn the zombie
+          increaseZombieCount();
+          respawnZombie(zombie);
+        }
+      }
+    }
+  }
 }
+
+// stop the game basically and show the stats (how many zombies were killed and how long you lasted in the "arena")
 
 // create a new bullet and fires it
 function fireBullet() {
   // creates a bullet as a Mesh object
-  let bullet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  let bullet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xaf9b60 }));
 
   // position the bullet to come from the player's weapon
   // right now, it's just coming from the camera -- change later
@@ -238,7 +301,7 @@ function fireBullet() {
     scene.remove(bullet);
   }, 1000);
 
-  // add to scene, array, and set the delay to 10 frames
+  // add to scene, array
   bullets.push(bullet);
   scene.add(bullet);
 }
@@ -340,14 +403,13 @@ function init() {
   document.addEventListener("mousedown", fireBullet);
 
   insertWalls(); // thought it would be neater to put this code in its own function
-  // insertCrossHair();
   spawnZombies();
 
   raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
   controls = new PointerLockControls(camera, document.body);
 
-  const blocker = document.getElementById("blocker");
-  const instructions = document.getElementById("instructions");
+  blocker = document.getElementById("blocker");
+  instructions = document.getElementById("instructions");
 
   instructions.addEventListener("click", function () {
     controls.lock();

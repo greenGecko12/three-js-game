@@ -10,47 +10,68 @@
 
 <body>
     <p class="fixed" id="numberOfLives"></p>
-    <div class="fixed-centre">
+    <div class="fixed-centre" id="stats">
         <div style="display: inline-block;">
             <p>Zombie Count</p>
             <p id="zombies"></p>
+            <div class="crosshair" style="margin-top: 25.8rem; margin-left: 5.2rem;"></div>
         </div>
+
     </div>
 
     <div id="blocker">
         <div id="instructions">
-            <p id="title">
-                Level 1: Zombie Apocalypse
-            </p>
-            <div class="largefont">
-                <p>
-                    This level is very simple to play. All you have to shoot the zombies. You can shoot them to your
-                    heart's content in fact.
+            <div id="level-instructions">
+                <p id="title">
+                    Level 1: Zombie Apocalypse
                 </p>
-                <p>
-                    Don't the zombies touch you or you lose a life. You start with 3 lives and you lose if you lose
-                    all three lives. The number of lives is represented by the number of hearts above the character.
-                </p>
-                <p>
-                    Shooting the zombies will get rid of them. However for every zombie you shoot, another one will be
-                    added to the game giving you a (practically) infinite stream of enemies.
-                </p>
-                <p>
-                    If you
-                    ever need to read these instructions again then press the "Esc" key on your keyboard. Finally, if
-                    you want to return to the main menu then press the button below.
-                </p>
-                <p>
-                    Move: WASD<br />
-                    Jump: SPACE<br />
-                    Look: MOUSE <br />
-                    Shoot: Left click
-                </p>
+                <div class="largefont">
+                    <p>
+                        This level is very simple to play. All you have to shoot the zombies. You can shoot them to your
+                        heart's content in fact.
+                    </p>
+                    <p>
+                        Don't the zombies touch you or you lose a life. You start with 3 lives and you lose if you lose
+                        all three lives. The number of lives is represented by the number of hearts above the character.
+                        The
+                        game ends when you run out of lives. The objective is to kill as many zombies as you possible
+                        can.
+                    </p>
+                    <p>
+                        Shooting the zombies will get rid of them. However for every zombie you shoot, another one will
+                        be
+                        added to the game at a random position giving you a (practically) infinite stream of enemies.
+                    </p>
+                    <p>
+                        If you
+                        ever need to read these instructions again then press the "Esc" key on your keyboard. Finally,
+                        if
+                        you want to return to the main menu then press the button below.
+                    </p>
+                    <p style="color:crimson;font-weight: 900;">REMEMBER: aim accuracy is lower when you move!!</p>
+                    <p>
+                        Move: WASD<br />
+                        Jump: SPACE<br />
+                        Look: MOUSE <br />
+                        Shoot: Left click
+                    </p>
+                </div>
+                <h1 id="goodluck"> Click to start!! Good luck. </h1>
             </div>
-            <h1 id="goodluck"> Click to start!! Good luck. </h1>
+            <div class="blocker instructions" id="gameover" style="display:none">
+                <h1 class="fixed-centre">Game over; look at the top of the screen to see
+                    how many
+                    zombies you
+                    have killed before losing all your lives</h1>
+            </div>
+
             <a href="index.html"><button class="button-63">Return to Main menu</button></a>
         </div>
     </div>
+
+
+
+
 
     <!-- Import maps polyfill -->
     <!-- Remove this when import maps will be widely supported -->
