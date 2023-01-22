@@ -16,14 +16,12 @@ let blocker;
 let instructions;
 
 let raycaster;
-let lives = 1;
+let lives = 3;
 let zombiesKilled = 0;
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const vertex = new THREE.Vector3();
-const color = new THREE.Color();
 const textureLoader = new THREE.TextureLoader();
 
 // movement variables
@@ -110,7 +108,7 @@ function loseLife() {
     blocker.style.display = "none";
     controls.unlock();
     document.getElementById("level-instructions").style.display = "none";
-    // document.getElementById("gameover").style.display = "";
+    document.getElementById("finish").style.display = "";
   }
 
   //Updates the number of hearts being displayed
@@ -378,9 +376,8 @@ function init() {
   camera.position.y = 5;
   scene.add(camera);
 
-  // adding the light for the second level
-  const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
-  light.position.set(100, 100, 50);
+  // adding the light for the first level
+  const light = new THREE.AmbientLight(0x404040, 0.5); // no shadows
   scene.add(light);
 
   const dirLight = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
@@ -393,8 +390,8 @@ function init() {
   dirLight2.castShadow = true;
   scene.add(dirLight2);
 
-  const dirLight3 = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
-  dirLight3.position.set(-70, 50, -100);
+  const dirLight3 = new THREE.PointLight(0xfffffff, 1, 100); // shadows
+  dirLight3.position.set(50, 50, 50);
   dirLight3.castShadow = true;
   scene.add(dirLight3);
 
@@ -532,8 +529,6 @@ function animate() {
 
       canJump = true;
     }
-
-    // updateCrosshairPosition();
 
     // creating a loop to animate all the bullets
     // and remove the bullets when necessary

@@ -382,14 +382,20 @@ function init() {
 
   const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
   light.position.set(50, 10, 75);
-  // light.castShadow = true;
   scene.add(light);
+
+  const light2 = new THREE.AmbientLight(0x404040, 0.5); // no shadows
+  scene.add(light2);
 
   const dirLight = new THREE.DirectionalLight(0xfffffff, 0.6, 50); // shadows
   dirLight.position.set(40, 90, 100);
   dirLight.castShadow = true;
   scene.add(dirLight);
-  //loadTexture()
+
+  const dirLight3 = new THREE.PointLight(0xfffffff, 1, 100); // shadows
+  dirLight3.position.set(50, 50, 50);
+  dirLight3.castShadow = true;
+  scene.add(dirLight3);
 
   const loader = new THREE.CubeTextureLoader();
   const texture = loader.load([
