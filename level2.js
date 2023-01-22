@@ -15,22 +15,21 @@ const tileSpeeds = []; // dictates what the behaviour of each tile will be
 const alienObjects = [];
 const heartSymbol = "&#10084; "; // html code for a heart
 
-let personObject;
 let id;
 let raycaster;
 let lives = 3;
 let heartObjects = [];
 
+let instructions;
+let blocker;
+
 const planeWidth = 50;
 const planeLength = 250;
 const startAreasize = 20;
 
-// these are kind of arbitrary, may change later on
-const tileSize = parseInt(planeWidth / 7);
+// these values have been decided after some trial and error
+const tileSize = parseInt(planeWidth / 7); // 7 for now
 const numberOfTiles = 20;
-let prevTime = performance.now();
-// const velocity = new THREE.Vector3();
-// let playerPosition = new THREE.Vector3();
 
 const fov = 75;
 const aspect = window.innerWidth / window.innerHeight;
@@ -43,7 +42,6 @@ let orbitControls;
 let keyDisplayQueue;
 let keysPressed;
 
-let soldierBB; // bounding box for the soldier
 let model;
 let leftWallBB;
 let rightWallBB;
@@ -53,6 +51,7 @@ const dampingFactor = 0.2;
 init();
 animate();
 
+//Loads the soldier and enables the animation to make the movement look realistic
 function loadSoldier() {
   // MODEL WITH ANIMATIONS
   new GLTFLoader().load("models/Soldier.glb", function (gltf) {
@@ -62,10 +61,6 @@ function loadSoldier() {
     });
     model.scale.set(3.5, 3.5, 3.5);
     model.position.set(0, 0, 110);
-
-    // soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-    // console.log(typeof soldierMeshObject);
-    // soldierBB.setFromObject(soldierMeshObject);
     scene.add(model);
 
     const gltfAnimations = gltf.animations;
@@ -115,6 +110,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min) + min);
 }
 
+// creates all the tiles on the plane and adds to them the scene and the tiles array
 function generateTiles() {
   // box material
   const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xd0312d });
@@ -156,7 +152,7 @@ function createStartAndEndSections() {
   scene.add(endBoxMesh);
 }
 
-// not used anymore
+// creates 3D hearts that are placed on the plane
 function generateAllHearts() {
   for (let i = 0; i < lives; i++) {
     const heart = generateHeart();
@@ -166,6 +162,7 @@ function generateAllHearts() {
   }
 }
 
+// returns the mesh for the heart
 function generateHeart() {
   const heartShape = new THREE.Shape();
 
@@ -186,6 +183,7 @@ function generateHeart() {
   return heart;
 }
 
+// decreases the number of lives and also checks if the game is over or not
 function loseLife() {
   lives -= 1;
   console.log(lives);
@@ -200,7 +198,7 @@ function loseLife() {
   }
 }
 
-//generates a random position on the plane for the aliens to spawn from which they chase you the player
+//generates a random position on the plane (utility function basically)
 function getRandomPositionOnPlane() {
   const x = Math.random() * planeWidth;
   const y = 5; // this is the height of the alien
@@ -209,6 +207,7 @@ function getRandomPositionOnPlane() {
   return [x, y, z];
 }
 
+// initialises the scene
 function init() {
   renderNumberOfHearts();
 
@@ -220,10 +219,10 @@ function init() {
   renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
+  // creating the two cameras that are going to be used
   camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   camera.position.y = 20;
   camera.position.z = -20;
-  //camera.lookAt(-100, 100, -10);
 
   peekbackCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   peekbackCamera.position.y = 10;
@@ -234,7 +233,6 @@ function init() {
   cameras.push(camera, peekbackCamera);
 
   scene = new THREE.Scene();
-  //scene.background = new THREE.Color(0xde45e3);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
 
   // CONTROLS
@@ -246,10 +244,12 @@ function init() {
   orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
   orbitControls.update();
 
-  loadSoldier();
+  // adding in the relevant objects
+  loadSoldier(); // this is an asychronous function
   createStartAndEndSections();
   generateTiles();
 
+  // adding in all the lights
   const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
   light.position.set(50, 10, 75);
   scene.add(light);
@@ -281,8 +281,8 @@ function init() {
   // locks in the mouse basically so you can't see
   controls = new PointerLockControls(mainCamera, document.body);
 
-  const blocker = document.getElementById("blocker");
-  const instructions = document.getElementById("instructions");
+  blocker = document.getElementById("blocker");
+  instructions = document.getElementById("instructions");
 
   instructions.addEventListener("click", function () {
     controls.lock();
@@ -323,12 +323,6 @@ function init() {
           mainCamera = camera;
         }
       }
-
-      // if (event.code === "KeyP") {
-      //   console.log(model.position.x, model.position.y, model.position.z);
-      //   loseLife();
-      //   checkIfGameWon();
-      // }
     },
     false
   );
@@ -342,12 +336,13 @@ function init() {
   );
 
   // what is a THREE.Raycaster --> for checking collisions basically
-  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 45);
+  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 2000);
 
   // floor - The first 2 arguments (width, height)
   // The last 2 arguments correspond to the number of width and height segments --> affect the design on the floor
   let floorGeometry = new THREE.PlaneGeometry(planeWidth, planeLength);
 
+  // this next chunk of code creates the walls and adds to the right positions
   let leftWall = new THREE.BoxGeometry(5, planeLength, 5);
   let rightWall = new THREE.BoxGeometry(5, planeLength, 5);
   leftWall.rotateZ(Math.PI / 2);
@@ -402,13 +397,6 @@ function onWindowResize() {
   keyDisplayQueue.updatePosition();
 }
 
-// function checkCollisions() {
-//   if (soldierBB.intersectsBox(leftWallBB) || soldierBB.intersectsBox(rightWallBB)) {
-//     console.log("collision");
-//     characterControls.moveAwayFromWalls();
-//   }
-// }
-
 // function to reduce the amount of repeated code between gameLost and checkIfGameWon
 function ending() {
   instructions.style.display = "none";
@@ -438,13 +426,6 @@ function checkIfGameWon() {
   }
 }
 
-function checkIfSoldierStepsOnTile() {
-  // using a raycaster to check if the soldier has stepped on a red tile
-  // if (){
-  //   loseLife();
-  // }
-}
-
 // this function "randomly" changes the positions of all the tiles
 // some tiles move fast and some move slow
 function moveTiles() {
@@ -459,21 +440,18 @@ function moveTiles() {
   }
 }
 
+// to inform the user how long they've spent on the level so far
 function updateTimer() {
   const domElement = document.getElementById("timer");
   domElement.innerText = parseInt(clock.getElapsedTime());
 }
 
-// animation function that gets called 60 times a second,
+// animation function that gets called 60 times a second
 function animate() {
   id = requestAnimationFrame(animate);
 
+  // constantly have to check if the player has reached the "finishing line"
   if (model !== undefined) {
-    // soldierBB.setFromObject(model.children[0]);
-    // soldierBB.copy(model.children[0]).applyMatrix4(model.matrixWorld);
-    // checkCollisions();
-    // checkGameStatus();
-    // checkIfSoldierStepsOnTile();
     checkIfGameWon();
   }
 
@@ -482,56 +460,27 @@ function animate() {
     characterControls.update(mixerUpdateDelta, keysPressed);
   }
   orbitControls.update();
-  renderer.render(scene, mainCamera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
+  renderer.render(scene, mainCamera);
 
+  // updating time status and moving the tiles across the bridge
   updateTimer();
   moveTiles();
 
-  // raycaster.intersect();
-
-  const time = performance.now();
-
+  // checking if the user has stepped on a tile and if so removing it from the scene
   if (controls.isLocked === true) {
-    raycaster.ray.origin.copy(model.children[0].position);
-    raycaster.ray.origin.y -= 10;
+    raycaster.ray.origin.copy(model.position);
+    raycaster.ray.origin.y += 2;
 
-    const intersections = raycaster.intersectObjects(tiles, false);
-
+    const intersections = raycaster.intersectObjects(tiles, true);
     const onObject = intersections.length > 0;
 
-    const delta = (time - prevTime) / 1000;
-
-    // velocity.x -= velocity.x * 10.0 * delta;
-    // velocity.z -= velocity.z * 10.0 * delta;
-
-    // velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
-
-    // direction.z = Number(moveForward) - Number(moveBackward);
-    // direction.x = Number(moveRight) - Number(moveLeft);
-    // direction.normalize(); // this ensures consistent movements in all directions
-
-    // if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-    // if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-
     if (onObject === true) {
-      // velocity.y = Math.max(0, velocity.y);
-      // canJump = true;
-
-      console.log("tiles");
+      console.log(intersections);
+      for (let tileObject of intersections) {
+        scene.remove(tileObject.object);
+        tiles.splice(tiles.indexOf(tileObject.object), 1);
+      }
+      loseLife();
     }
-
-    // controls.moveRight(-velocity.x * delta);
-    // controls.moveForward(-velocity.z * delta);
-
-    // controls.getObject().position.y += velocity.y * delta; // new behavior
-
-    // if (controls.getObject().position.y < 10) {
-    //   velocity.y = 0;
-    //   controls.getObject().position.y = 10;
-
-    //   canJump = true;
-    // }
   }
-
-  // prevTime = time;
 }
