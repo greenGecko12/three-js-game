@@ -440,6 +440,15 @@ function moveTiles() {
   }
 }
 
+// if the x coordinate of the player is too large or too smaller, the player
+function checkCheating() {
+  if (Math.abs(model.position.x) > planeWidth / 2) {
+    ending();
+    document.getElementById("finish-cheating").style.display = "";
+    cancelAnimationFrame(id); // literally stops the animation
+  }
+}
+
 // to inform the user how long they've spent on the level so far
 function updateTimer() {
   const domElement = document.getElementById("timer");
@@ -450,24 +459,24 @@ function updateTimer() {
 function animate() {
   id = requestAnimationFrame(animate);
 
-  // constantly have to check if the player has reached the "finishing line"
-  if (model !== undefined) {
-    checkIfGameWon();
-  }
-
-  let mixerUpdateDelta = clock.getDelta();
-  if (characterControls) {
-    characterControls.update(mixerUpdateDelta, keysPressed);
-  }
-  orbitControls.update();
-  renderer.render(scene, mainCamera);
-
-  // updating time status and moving the tiles across the bridge
-  updateTimer();
-  moveTiles();
-
   // checking if the user has stepped on a tile and if so removing it from the scene
   if (controls.isLocked === true) {
+    // constantly have to check if the player has reached the "finishing line"
+    if (model !== undefined) {
+      checkIfGameWon();
+      checkCheating();
+    }
+
+    let mixerUpdateDelta = clock.getDelta();
+    if (characterControls) {
+      characterControls.update(mixerUpdateDelta, keysPressed);
+    }
+    orbitControls.update();
+
+    // updating time status and moving the tiles across the bridge
+    updateTimer();
+    moveTiles();
+
     raycaster.ray.origin.copy(model.position);
     raycaster.ray.origin.y += 2;
 
@@ -475,7 +484,6 @@ function animate() {
     const onObject = intersections.length > 0;
 
     if (onObject === true) {
-      console.log(intersections);
       for (let tileObject of intersections) {
         scene.remove(tileObject.object);
         tiles.splice(tiles.indexOf(tileObject.object), 1);
@@ -483,4 +491,5 @@ function animate() {
       loseLife();
     }
   }
+  renderer.render(scene, mainCamera);
 }

@@ -13,6 +13,7 @@ let bulletBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
 
 let blocker;
 let instructions;
+let cameraLookatVector = new THREE.Vector3();
 
 let lives = 3;
 let zombiesKilled = 0;
@@ -59,6 +60,7 @@ const collisionThreshold = 2; // might change later as necessary
 let zombiePosition;
 let distance;
 
+// creating the array that holds all the directions that the zombies will move in
 let randomDirection;
 const randomDirections = [];
 for (let i = 0; i < numberOfZombies; i++) {
@@ -99,6 +101,7 @@ function calculateEuclideanDistance(zombieIndex) {
   }
 }
 
+// reduce number of lives the user has and ends the game basically
 function loseLife() {
   lives -= 1;
   if (lives <= 0) {
@@ -108,7 +111,6 @@ function loseLife() {
     document.getElementById("level-instructions").style.display = "none";
     document.getElementById("finish").style.display = "";
   }
-
   //Updates the number of hearts being displayed
   if (lives > -1) {
     renderNumberOfHearts();
@@ -174,16 +176,13 @@ function insertWalls() {
   scene.add(wall1, wall2, wall3, wall4);
 }
 
-// not used because the
+// not used because this function is bug-ridden
+// its intention is to insert a crosshair right in the centre of screen to see where the bullets would go
 function insertCrossHair() {
   const crosshairMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
 
-  // verticalCrosshairLine = new THREE.BoxGeometry(0.05, 0.2, 0);
-  // horizontalCrosshairLine = new THREE.BoxGeometry(0.2, 0.05, 0);
-
   verticalCrosshairLine = new THREE.BoxGeometry(1, 1, 0);
   horizontalCrosshairLine = new THREE.BoxGeometry(1, 1, 0);
-  // horizontalCrosshairLine.rotateZ(-Math.PI);
 
   veticalMesh = new THREE.Mesh(verticalCrosshairLine, crosshairMaterial);
   horizontalMesh = new THREE.Mesh(horizontalCrosshairLine, crosshairMaterial);
@@ -209,6 +208,7 @@ function loadZombie() {
     "models/Zombie.glb",
     function (gltf) {
       const zombieObject = gltf.scene.children[0];
+      // the zombies are placed in a random location on the place
       zombieObject.position.set(
         getRandomInt(-floorSize / 2 + slack, floorSize / 2 - slack),
         9,
@@ -231,6 +231,8 @@ function loadZombie() {
   );
 }
 
+// this function is called in the animate function
+// moves the zombies and also "reflects" them off the walls if they reach the edge of the plane
 function animateZombies() {
   for (let zombie in zombies) {
     // check for collisions with walls here
@@ -253,6 +255,7 @@ function animateZombies() {
 
     calculateEuclideanDistance(zombie);
 
+    // checking if any of the bullets touch any of the zombies
     for (let bullet of bullets) {
       if (bullet.alive === true) {
         bulletBB.setFromObject(bullet);
@@ -271,12 +274,26 @@ function fireBullet() {
   // creates a bullet as a Mesh object
   let bullet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xaf9b60 }));
 
+  // let lookDir = new THREE.Vector3();
+  // camera.getWorldDirection(lookDir);
+
   // position the bullet to come from the player's weapon
   // right now, it's just coming from the camera -- change later
+
+  // controls.getObject().position;
+
   bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
 
   // set the velocity of the bullet
-  bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y)); // Look into
+
+  bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y));
+  // console.log("=============================================");
+  // console.log(bullet.velocity);
+  // camera.getWorldDirection(cameraLookatVector);
+
+  // console.log(cameraLookatVector);
+  // console.log("=============================================");
+  // bullet.velocity = new THREE.Vector3(cameraLookatVector);
 
   // after 1000ms, set alive to false and remove from scene
   // setting alive to false flags our update code to remove
@@ -292,15 +309,15 @@ function fireBullet() {
   scene.add(bullet);
 }
 
+// The maximum is exclusive and the minimum is inclusive
 function getRandomInt(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
-  // The maximum is exclusive and the minimum is inclusive
   return Math.floor(Math.random() * (max - min) + min);
 }
 
 function init() {
-  // movement controls --> used in 2nd level
+  // movement controls --> same as the pointerlock example
   const onKeyDown = function (event) {
     switch (event.code) {
       case "ArrowUp":
@@ -330,7 +347,7 @@ function init() {
     }
   };
 
-  // movement controls --> used in 2nd level
+  // movement controls
   const onKeyUp = function (event) {
     switch (event.code) {
       case "ArrowUp":
@@ -356,6 +373,7 @@ function init() {
   };
   renderNumberOfHearts();
 
+  // this next chunk of code sets up the scene, camera, lighting etc.
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
   scene.fog = new THREE.Fog(0xffffff, 0, 750);
@@ -387,7 +405,8 @@ function init() {
   document.addEventListener("keyup", onKeyUp);
   document.addEventListener("mousedown", fireBullet);
 
-  insertWalls(); // thought it would be neater to put this code in its own function
+  // adding the walls and the zombies into the game
+  insertWalls();
   spawnZombies();
 
   controls = new PointerLockControls(camera, document.body);
@@ -415,6 +434,7 @@ function init() {
   let floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize);
   floorGeometry.rotateX(-Math.PI / 2);
 
+  // repeating the texture both in the x and y directions so that it looks near (and not pixelated)
   const material = textureLoader.load("./textures/tiling.jpg");
   material.wrapS = THREE.RepeatWrapping;
   material.wrapT = THREE.RepeatWrapping;
@@ -422,6 +442,7 @@ function init() {
 
   const floorMaterial = new THREE.MeshStandardMaterial({ map: material, side: THREE.FrontSide });
 
+  // adding the floor to the scene
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.receiveShadow = true;
   scene.add(floor);
@@ -447,13 +468,6 @@ function animate() {
   const time = performance.now();
 
   if (controls.isLocked === true) {
-    // raycaster.ray.origin.copy(controls.getObject().position);
-    // raycaster.ray.origin.y -= 10;
-
-    // const intersections = raycaster.intersectObjects(objects, false);
-
-    // const onObject = intersections.length > 0;
-
     const delta = (time - prevTime) / 1000;
 
     velocity.x -= velocity.x * 10.0 * delta;
@@ -466,39 +480,13 @@ function animate() {
 
     // we also need to check whether the camera is moving out of bounds (i.e. it can't move outside the wall)
     if (moveForward || moveBackward) {
-      // if (!(Math.abs(camera.position.z) < Z_edge - 10)) {
-      //   velocity.z = 0;
-      // } else {
       velocity.z -= direction.z * 400.0 * delta;
-      // }
     }
     if (moveLeft || moveRight) {
-      // if (!(Math.abs(camera.position.x) < X_edge - 10)) {
-      //   velocity.x = 0;
-      // } else {
       velocity.x -= direction.x * 400.0 * delta;
-      // }
     }
 
-    // if (onObject === true) {
-    //   velocity.y = Math.max(0, velocity.y);
-    //   canJump = true;
-    // }
-
-    // check for camera collisions with walls here
-
-    // if (
-    //    >= X_edge - zombieCollisionSlack ||
-    //   Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack
-    // ) {
-    //   if (Math.abs(zombies[zombie].position.x) >= X_edge - zombieCollisionSlack) {
-    //     randomDirections[zombie].x *= -1;
-    //   }
-    //   if (Math.abs(zombies[zombie].position.z) >= Z_edge - zombieCollisionSlack) {
-    //     randomDirections[zombie].z *= -1;
-    //   }
-    // }
-
+    // checking for camera collisions with walls here
     if (Math.abs(camera.position.x) < X_edge - 10) {
       controls.moveRight(-velocity.x * delta);
     }
@@ -525,14 +513,11 @@ function animate() {
         bullets.splice(index, 1);
         continue;
       }
-
       bullets[index].position.add(bullets[index].velocity);
     }
-
     animateZombies();
   }
 
   prevTime = time;
-
   renderer.render(scene, camera);
 }
