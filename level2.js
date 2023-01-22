@@ -13,25 +13,13 @@ const cameras = [];
 const tiles = []; // holds each tile on the plane
 const tileSpeeds = []; // dictates what the behaviour of each tile will be
 const alienObjects = [];
-const hearts = [];
-
 const heartSymbol = "&#10084; "; // html code for a heart
-let personBoundingBox;
 
-// there are 2 scenes, scene 1 and scene
-let mainScene;
-const scenes = [];
-const jump = 1; // TODO: this variable controls how far the character jumps (remove when 3rd person camera implemented)
-
-let flag = true;
 let personObject;
+let id;
 let raycaster;
 let lives = 3;
 let heartObjects = [];
-
-let time;
-let gameOver = false;
-let gameStart = false; // TODO: use this variable later on in the process.
 
 const planeWidth = 50;
 const planeLength = 250;
@@ -40,10 +28,9 @@ const startAreasize = 20;
 // these are kind of arbitrary, may change later on
 const tileSize = parseInt(planeWidth / 7);
 const numberOfTiles = 20;
-
 let prevTime = performance.now();
-const velocity = new THREE.Vector3();
-let playerPosition = new THREE.Vector3();
+// const velocity = new THREE.Vector3();
+// let playerPosition = new THREE.Vector3();
 
 const fov = 75;
 const aspect = window.innerWidth / window.innerHeight;
@@ -56,12 +43,8 @@ let orbitControls;
 let keyDisplayQueue;
 let keysPressed;
 
-// These variable are temporary - remove them when collision fully working.
-let cube2;
-let cube2BB;
 let soldierBB; // bounding box for the soldier
 let model;
-
 let leftWallBB;
 let rightWallBB;
 
@@ -80,8 +63,9 @@ function loadSoldier() {
     model.scale.set(3.5, 3.5, 3.5);
     model.position.set(0, 0, 110);
 
-    soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-    soldierBB.setFromObject(model.children[0]);
+    // soldierBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    // console.log(typeof soldierMeshObject);
+    // soldierBB.setFromObject(soldierMeshObject);
     scene.add(model);
 
     const gltfAnimations = gltf.animations;
@@ -97,12 +81,14 @@ function loadSoldier() {
   });
 }
 
+// show the number of hearts corresponding to the number of lives of the user
 function renderNumberOfHearts() {
   const livesLeft = document.getElementById("numberOfLives");
   let string = "Lives: ".concat(heartSymbol.repeat(lives));
   livesLeft.innerHTML = string;
 }
 
+// this function is not actually used (because of a change of plans)
 function loadAlienModel(path) {
   const loader = new GLTFLoader();
 
@@ -112,47 +98,12 @@ function loadAlienModel(path) {
       const alienObject = gltf.scene.children[0];
       let pos = getRandomPositionOnPlane();
       alienObject.position.set(pos[0], pos[1], pos[2]);
-
-      // alienObject.scale.set([2,2,2]);
-
       scene.add(alienObject);
       alienObjects.push(alienObject);
-
-      // return alientObject;
     },
     undefined,
     function (error) {
       console.error(error);
-    }
-  );
-}
-
-// this function is not actually used
-function loadTexture() {
-  // instantiate a loader
-  const loader = new THREE.TextureLoader();
-
-  // load a resource
-  loader.load(
-    // resource URL
-    "textures/galaxy_texture.jpg",
-
-    // onLoad callback
-    function (texture) {
-      // in this example we create the material when the texture is loaded
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-      });
-
-      scene.background = material;
-    },
-
-    // onProgress callback currently not supported
-    undefined,
-
-    // onError callback
-    function (err) {
-      console.error("An error happened.");
     }
   );
 }
@@ -185,7 +136,8 @@ function generateTiles() {
   }
 }
 
-// creates 2 cubes that are positioned at the start and end of the track
+// creates 2 (very flat) cubes that are positioned at the start and end of the track
+// in fact the width of both these cube is zero (they are basically just geomatric planes)
 function createStartAndEndSections() {
   // box material
   const boxMaterial = new THREE.MeshLambertMaterial({ color: 0xca5cdd });
@@ -204,6 +156,7 @@ function createStartAndEndSections() {
   scene.add(endBoxMesh);
 }
 
+// not used anymore
 function generateAllHearts() {
   for (let i = 0; i < lives; i++) {
     const heart = generateHeart();
@@ -236,11 +189,12 @@ function generateHeart() {
 function loseLife() {
   lives -= 1;
   console.log(lives);
-  if (lives == 0) {
-    gameOver = true;
+  if (lives <= 0) {
+    gameLost();
   }
 
   //Updates the number of hearts being displayed
+  // can't go below zero or the game will crash
   if (lives > -1) {
     renderNumberOfHearts();
   }
@@ -370,9 +324,11 @@ function init() {
         }
       }
 
-      if (event.code === "KeyP") {
-        console.log(model.position.x, model.position.y, model.position.z);
-      }
+      // if (event.code === "KeyP") {
+      //   console.log(model.position.x, model.position.y, model.position.z);
+      //   loseLife();
+      //   checkIfGameWon();
+      // }
     },
     false
   );
@@ -399,7 +355,6 @@ function init() {
 
   rightWall.rotateZ(Math.PI / 2);
   rightWall.rotateY(-Math.PI / 2);
-  // leftWall.rotateX(Math.PI / 2);
 
   const wallTextureLoader = new THREE.TextureLoader();
   const wallMaterial = wallTextureLoader.load("./textures/fence_texture.jpg");
@@ -437,8 +392,6 @@ function init() {
   floor.receiveShadow = true;
   scene.add(floor);
 
-  //////////////////////////////////////////////////////////////////////////////////////
-
   window.addEventListener("resize", onWindowResize);
 }
 
@@ -456,7 +409,41 @@ function onWindowResize() {
 //   }
 // }
 
-//
+// function to reduce the amount of repeated code between gameLost and checkIfGameWon
+function ending() {
+  instructions.style.display = "none";
+  blocker.style.display = "none";
+  controls.unlock();
+  document.getElementById("level-instructions").style.display = "none";
+}
+
+// ending the game
+function gameLost() {
+  ending();
+  document.getElementById("finish-lose").style.display = "";
+  cancelAnimationFrame(id); // literally stops the animation
+}
+
+// player has won the game
+function checkIfGameWon() {
+  // checks if the player has reached the other end of the plane
+  if (model !== undefined) {
+    if (model.position.z <= -107) {
+      ending();
+      const DOMelement = document.getElementById("finish-win");
+      DOMelement.style.display = "";
+      DOMelement.innerText += parseInt(clock.getElapsedTime()) + " seconds";
+      cancelAnimationFrame(id); // literally stops the animation
+    }
+  }
+}
+
+function checkIfSoldierStepsOnTile() {
+  // using a raycaster to check if the soldier has stepped on a red tile
+  // if (){
+  //   loseLife();
+  // }
+}
 
 // this function "randomly" changes the positions of all the tiles
 // some tiles move fast and some move slow
@@ -479,12 +466,15 @@ function updateTimer() {
 
 // animation function that gets called 60 times a second,
 function animate() {
-  requestAnimationFrame(animate);
+  id = requestAnimationFrame(animate);
 
   if (model !== undefined) {
-    soldierBB.setFromObject(model.children[0]);
+    // soldierBB.setFromObject(model.children[0]);
     // soldierBB.copy(model.children[0]).applyMatrix4(model.matrixWorld);
     // checkCollisions();
+    // checkGameStatus();
+    // checkIfSoldierStepsOnTile();
+    checkIfGameWon();
   }
 
   let mixerUpdateDelta = clock.getDelta();
@@ -496,24 +486,6 @@ function animate() {
 
   updateTimer();
   moveTiles();
-
-  // if (personObject != undefined){
-  //     if (flag){
-  //         updateAlienPositions();
-  //         flag = false;
-  //     }
-  // }
-
-  //   if (personObject != undefined) {
-  //     updateAlienPositions();
-  //   }
-
-  //personObject != undefined &&
-
-  //updating the person's bounding box
-  // if (personBoundingBox !== undefined) {
-  //   personBoundingBox.copy(personObject.geometry.boundingBox).applyMatrix4(personObject.matrixWorld);
-  // }
 
   // raycaster.intersect();
 

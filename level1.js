@@ -10,12 +10,10 @@ const zombieBoundingBoxes = [];
 
 //bounding box for the bullet being checked for collision
 let bulletBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-const walls = [];
 
 let blocker;
 let instructions;
 
-let raycaster;
 let lives = 3;
 let zombiesKilled = 0;
 
@@ -174,9 +172,9 @@ function insertWalls() {
   wall4.position.set(0, wallHeight / 2, floorSize / 2);
 
   scene.add(wall1, wall2, wall3, wall4);
-  walls.push(wall1, wall2, wall3, wall4); // for collisions
 }
 
+// not used because the
 function insertCrossHair() {
   const crosshairMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
 
@@ -235,8 +233,6 @@ function loadZombie() {
 
 function animateZombies() {
   for (let zombie in zombies) {
-    // zombies[zombie].lookAt(zombies[zombie].position + randomDirections[zombie]);
-
     // check for collisions with walls here
     if (
       Math.abs(zombies[zombie].position.x) >= X_edge - zombieCollisionSlack ||
@@ -394,8 +390,6 @@ function init() {
   insertWalls(); // thought it would be neater to put this code in its own function
   spawnZombies();
 
-  // raycaster is not actually used in this level
-  raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
   controls = new PointerLockControls(camera, document.body);
 
   blocker = document.getElementById("blocker");
