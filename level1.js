@@ -233,12 +233,6 @@ function loadZombie() {
   );
 }
 
-/*
-TODO Next: 
-Bullet collision with Zombies and then respawning them, adding one to zombie count
-In Level 2: camera fix, win detection, (maybe bouncing off walls)
-*/
-
 function animateZombies() {
   for (let zombie in zombies) {
     // zombies[zombie].lookAt(zombies[zombie].position + randomDirections[zombie]);
@@ -275,8 +269,6 @@ function animateZombies() {
     }
   }
 }
-
-// stop the game basically and show the stats (how many zombies were killed and how long you lasted in the "arena")
 
 // create a new bullet and fires it
 function fireBullet() {
@@ -402,6 +394,7 @@ function init() {
   insertWalls(); // thought it would be neater to put this code in its own function
   spawnZombies();
 
+  // raycaster is not actually used in this level
   raycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
   controls = new PointerLockControls(camera, document.body);
 

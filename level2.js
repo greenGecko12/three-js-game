@@ -5,10 +5,6 @@ import { GLTFLoader } from "./node_modules/three/examples/jsm/loaders/GLTFLoader
 import { KeyDisplay } from "./helpers/util.js";
 import { CharacterControls } from "./characterControls.js";
 
-//Have a variable which determine which level is currently being shown
-
-// variables for one level
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 let peekbackCamera; // this is the second camera view that allows you to peek "back"
 let camera, scene, renderer, controls;
 let mainCamera;
@@ -208,7 +204,6 @@ function createStartAndEndSections() {
   scene.add(endBoxMesh);
 }
 
-// this method is obsolete, get rid of it later on
 function generateAllHearts() {
   for (let i = 0; i < lives; i++) {
     const heart = generateHeart();
@@ -218,20 +213,6 @@ function generateAllHearts() {
   }
 }
 
-function createTestBox() {
-  cube2 = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshPhongMaterial({ color: 0x0000ff }));
-
-  cube2.position.set(-3, 3, 20);
-  cube2.castShadow = true;
-  cube2.receiveShadow = true;
-
-  cube2BB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-  cube2BB.setFromObject(cube2);
-
-  scene.add(cube2);
-}
-
-// TODO: this method is obsolete, get rid of it later on
 function generateHeart() {
   const heartShape = new THREE.Shape();
 
@@ -252,9 +233,6 @@ function generateHeart() {
   return heart;
 }
 
-// just subtracts a life and TODO: also remove a heart from the screen
-// THIS REMOVAL MIGHT TRIGGER A RE-RENDER OF THE HEARTS ON THE SCREEN
-// Could maybe include some sort of sound effect to alert the user of this
 function loseLife() {
   lives -= 1;
   console.log(lives);
@@ -275,54 +253,6 @@ function getRandomPositionOnPlane() {
   const z = Math.random() * planeLength;
 
   return [x, y, z];
-}
-
-// for now this function just creates a bunch of boxes that follow you
-function spawnAliens() {
-  let numberOfAliens = getRandomInt(3, 5);
-  //const alienGeometry = new THREE.BoxGeometry(10,10,10);
-
-  //const alientMaterial = new THREE.MeshLambertMaterial({color: 0x57fd10})
-
-  // for (let i=0; i<numberOfAliens; i++){
-  //     let alien = new THREE.Mesh(alienGeometry, alientMaterial);
-  //     let pos = getRandomPositionOnPlane()
-  //     alien.position.set(pos[0], pos[1], pos[2]);
-  //     alienObjects.push(alien);
-  //     scene.add(alien);
-  // }
-
-  for (let i = 0; i < numberOfAliens; i++) {
-    loadAlienModel("./mike_wazowski.glb");
-  }
-}
-
-// I think it would be good to have a fixed number of aliens that are always respawned and chase you all the time
-
-// this function updates the positions of the aliens so that they keep chasing you.
-function updateAlienPositions() {
-  playerPosition = personObject.position; // this is of type Vector3
-  let diffVec;
-
-  // calculating the difference vectors between each of the aliens the player
-  for (let alien of alienObjects) {
-    //console.log(alien);
-
-    diffVec = playerPosition.sub(alien.position).normalize(); // TODO: check what this function actually does
-
-    alien.position.x += diffVec.getComponent(0) / 30;
-    alien.position.y += diffVec.getComponent(1) / 30;
-    alien.position.z += diffVec.getComponent(2) / 30;
-
-    // console.log(diffVec);
-
-    // adding this difference vector to the position vector of the aliens so that they will "chase" the player
-    // alien.position.set(alien.position.add(diffVec));
-  }
-
-  // alienObjects.forEach((alien) => {
-  //     console.log(alien)
-  // })
 }
 
 function init() {
@@ -362,23 +292,9 @@ function init() {
   orbitControls.maxPolarAngle = Math.PI / 2 - 0.05;
   orbitControls.update();
 
-  // loadModel("./models/Person2.glb");
-
   loadSoldier();
-
   createStartAndEndSections();
-  // console.log("+++++");
-  // console.log(personObject);
-  // console.log("+++++");
-
   generateTiles();
-  // generateAllHearts();
-
-  //createTestBox();
-
-  //spawnAliens();
-
-  // updateAlienPositions(personObject);
 
   const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.5); // no shadows
   light.position.set(50, 10, 75);
@@ -518,8 +434,7 @@ function init() {
   const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, side: THREE.FrontSide });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-  // floor.receiveShadow = true;
-  // floor.castShadow = true;
+  floor.receiveShadow = true;
   scene.add(floor);
 
   //////////////////////////////////////////////////////////////////////////////////////
@@ -554,16 +469,6 @@ function moveTiles() {
       tileSpeeds[tile] *= -1;
     }
     tileObject.position.x += tileSpeeds[tile];
-    // } else {
-    //   // fast tile
-    //   if (tileObject.position.x < -(planeWidth / 2 - tileSize / 2)) {
-    //     tileObject.position.x += fastTileSpeed;
-    //   } else if (tileObject.position.x > planeWidth / 2 - tileSize / 2) {
-    //     tileObject.position.x -= fastTileSpeed;
-    //   } else {
-    //     tileObject.position.x += fastTileSpeed;
-    //   }
-    // }
   }
 }
 
@@ -590,7 +495,6 @@ function animate() {
   renderer.render(scene, mainCamera); // all you have to do is change is this line --> just render mainScene which can change between 2 things
 
   updateTimer();
-
   moveTiles();
 
   // if (personObject != undefined){
