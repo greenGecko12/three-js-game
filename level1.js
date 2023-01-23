@@ -10,10 +10,11 @@ const zombieBoundingBoxes = [];
 
 //bounding box for the bullet being checked for collision
 let bulletBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+// const bulletBBS = [];
 
 let blocker;
 let instructions;
-let cameraLookatVector = new THREE.Vector3();
+// let cameraLookatVector = new THREE.Vector3();
 
 let lives = 3;
 let zombiesKilled = 0;
@@ -80,6 +81,7 @@ function respawnZombie(zombieIndex) {
   );
 
   randomDirections[zombieIndex] = new THREE.Vector3(Math.random() * dampingFactor, 0, Math.random() * dampingFactor);
+  zombieBoundingBoxes[zombieIndex].setFromObject(zombies[zombieIndex]);
 }
 
 // for zombie collision with the user (i.e. the camera's coordinates)
@@ -261,8 +263,12 @@ function animateZombies() {
         bulletBB.setFromObject(bullet);
         if (bulletBB.intersectsBox(zombieBoundingBoxes[zombie])) {
           // if the bullet collides with zombie then we have to respawn the zombie
-          increaseZombieCount();
+          // scene.remove(bullet);
+          // bullets.splice(bullets.indexOf(bullet), 1);
+          // bulletBBS.splice(bullets.indexOf(bullet), 1);
+          // scene.remove(bullet);
           respawnZombie(zombie);
+          increaseZombieCount();
         }
       }
     }
@@ -274,19 +280,23 @@ function fireBullet() {
   // creates a bullet as a Mesh object
   let bullet = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), new THREE.MeshBasicMaterial({ color: 0xaf9b60 }));
 
-  // let lookDir = new THREE.Vector3();
-  // camera.getWorldDirection(lookDir);
+  let lookDir = new THREE.Vector3();
+  camera.getWorldDirection(lookDir);
+  bullet.position.copy(controls.getObject().position).addScaledVector(lookDir, 3);
+  // console.log(bullet.position);
 
-  // position the bullet to come from the player's weapon
-  // right now, it's just coming from the camera -- change later
-
-  // controls.getObject().position;
-
-  bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
+  // position the bullet to come from the camera
+  // bullet.position.set(camera.position.x, camera.position.y, camera.position.z);
 
   // set the velocity of the bullet
+  // bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y));
 
-  bullet.velocity = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, Math.cos(camera.rotation.y));
+  // console.log(bullet.velocity);
+
+  // bullet.velocity = new THREE.Vector3(lookDir).multiplyScalar(3);
+  // console.log(lookDir);
+  bullet.velocity = lookDir;
+
   // console.log("=============================================");
   // console.log(bullet.velocity);
   // camera.getWorldDirection(cameraLookatVector);
@@ -302,11 +312,15 @@ function fireBullet() {
   setTimeout(function () {
     bullet.alive = false;
     scene.remove(bullet);
+    bullets.splice(bullets.indexOf(bullet), 1);
   }, 1000);
 
   // add to scene, array
   bullets.push(bullet);
+  // bulletBBS.push(bulletBB.setFromObject(bullet));
   scene.add(bullet);
+
+  // console.log(bullets);
 }
 
 // The maximum is exclusive and the minimum is inclusive

@@ -131,8 +131,8 @@ export class CharacterControls {
     // UPDATE BOTH CAMERA POSITIONS HERE
     if (this.camera == this.cameras[0]) {
       // move second camera (which is not shown)
-      this.cameras[1].position.x += moveX;
-      this.cameras[1].position.z += moveZ;
+      this.cameras[1].position.x -= moveX;
+      this.cameras[1].position.z -= moveZ;
     } else {
       this.cameras[0].position.x += moveX;
       this.cameras[0].position.z += moveZ;
